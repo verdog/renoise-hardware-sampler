@@ -12,14 +12,13 @@ function select_midi_device(dev)
 end
 
 function gen_notes()
- return {0x3C, 0x3D, 0x3E, 0x3F}
-end
-
-function ping()
- local dev = get_midi_dev()
- dev:send({0x90, 0x3C, 0x7F})
- dev:send({0x80, 0x3C, 0x7F})
- dev:close()
+ -- midi 0xc = c0
+ -- renoise 0 = c0
+ local ret = {}
+ for n=12,12*5,4 do
+   table.insert(ret, n)
+ end
+ return ret
 end
 
 NOTEI = nil
@@ -42,14 +41,38 @@ function go()
  
  local inst = renoise.song().selected_instrument
  
+ -- clear samples
  while table.count(inst.samples) > 0 do
    inst:delete_sample_at(1)
  end
  
+ -- insert blank samples
  for i=1,table.count(NOTES) do
    inst:insert_sample_at(1)
  end
- 
+
+ -- set up mappings
+ for i=1,table.count(NOTES) do
+   rprint(inst.sample_mappings)
+   local mapping = inst.sample_mappings[1][i]
+   mapping.base_note = NOTES[i]
+   
+   local low
+   if i == 1 then
+     low = 0
+   else
+     low = NOTES[i]
+   end
+   
+   local high
+   if i == table.count(NOTES) then
+     high = 119
+   else
+     high = NOTES[i+1] - 1
+   end
+   mapping.note_range={low, high}
+ end
+   
  renoise.song().selected_sample_index = 1
  
  start_note()
@@ -61,13 +84,13 @@ function start_note()
  renoise.song().selected_sample_index = NOTEI
  renoise.app().window.sample_record_dialog_is_visible = true
  renoise.song().transport:start_stop_sample_recording()
- DEV:send({0x90, NOTES[NOTEI], 0x7F})
+ DEV:send({0x90, NOTES[NOTEI] + 0xC, 0x7F})
  renoise.tool():add_timer(stop_note, 2000)
 end
 
 function stop_note()
  print("Stopping note...")
- DEV:send({0x80, NOTES[NOTEI], 0x7F})
+ DEV:send({0x80, NOTES[NOTEI] + 0xC, 0x7F})
  renoise.app().window.sample_record_dialog_is_visible = true
  renoise.song().transport:start_stop_sample_recording()
  
