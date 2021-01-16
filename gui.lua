@@ -1,53 +1,53 @@
-vb = nil
-DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
-DEFAULT_CONTROL_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
-UNIT = renoise.ViewBuilder.DEFAULT_CONTROL_HEIGHT
-
 require"func"
 
+vb = nil
+DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+UNIT = renoise.ViewBuilder.DEFAULT_CONTROL_HEIGHT
+
 function textfield(_text, _value, _notif)
- return vb:horizontal_aligner {
-   margin = DEFAULT_MARGIN,
-   vb:text {
-     text = _text.." ",
-     width = "20%"
-   },
-   vb:textfield {
-     value = _value,
-     notifier = _notif,
-     width = "80%"
-   }
- }
+  return vb:horizontal_aligner {
+    margin = DEFAULT_MARGIN,
+
+    vb:text {
+      text = _text.." ",
+      width = "20%"
+    },
+    vb:textfield {
+      value = _value,
+      notifier = _notif,
+      width = "80%"
+    }
+  }
 end
 
 function value_box(_text, _value, _min, _max, _steps, _notif, _tostring, _tonum, _width)
- return vb:row {
-   vb:text {
-     text = _text.." "
-   },
-   vb:valuebox {
-     min = _min,
-     max = _max,
-     tostring = _tostring,
-     tonumber = _tonum,
-     notifier = _notif,
-     value = _value,
-     steps = _steps,
-     width = _width or UNIT*4
-   }
- }
+  return vb:row {
+    vb:text {
+      text = _text.." " 
+    },
+    vb:valuebox {
+      min = _min,
+      max = _max,
+      tostring = _tostring,
+      tonumber = _tonum,
+      notifier = _notif,
+      value = _value,
+      steps = _steps,
+      width = _width or UNIT*4
+    }
+  }
 end
 
 function checkbox(_text, _value, _notif)
- return vb:row {
-   vb:text {
-     text = _text.." "
-   },
-   vb:checkbox {
-     value = _value,
-     notifier = _notif
-   }
- }
+  return vb:row {
+    vb:text {
+      text = _text.." "
+    },
+    vb:checkbox {
+      value = _value,
+      notifier = _notif
+    }
+  }
 end
 
 function note_matrix()
@@ -57,8 +57,6 @@ function note_matrix()
     spacing = 1
   }
   local notes = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-  local UNIT = renoise.ViewBuilder.DEFAULT_CONTROL_HEIGHT
-  local colors = {}
   
   for note = 1,12 do
     local button = vb:button {
@@ -92,81 +90,83 @@ function midi_list()
 end
 
 function show_menu()
- vb = renoise.ViewBuilder()
- local title = "Create Instrument From Hardware"
+  vb = renoise.ViewBuilder()
+  local title = "Create Instrument From Hardware"
 
- local content = vb:column {
-   margin = DEFAULT_MARGIN*2,
-   
-   -- big buttons
-   vb:horizontal_aligner {
-     mode = "center",
-     vb:button {
-       width = "33%",
-       height = 2*UNIT,
-       text = "Start",
-       notifier = go
-     },
-     vb:button {
-       width = "33%",
-       height = 2*UNIT,
-       text = "Stop",
-       notifier = stop
-     },
-     vb:button {
-       width = "33%",
-       height = 2*UNIT,
-       text = "Recording Settings",
-       notifier = configure
-     }
-   },
-   
-   -- midi device selection
-   midi_list(),
-   
-   -- octave options
-   vb:horizontal_aligner {
-     mode = "center",
-     spacing = DEFAULT_MARGIN,
-     value_box("Low Octave", OPTIONS.low, 0, 9, {1, 2}, function(x) OPTIONS.low = x end, tostring, math.floor),
-     value_box("High Octave", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor)
-   },
-   
-   -- notes selection
-   note_matrix(),
-   
-   -- sample length
-   vb:horizontal_aligner {
-     mode = "center",
-     spacing = DEFAULT_MARGIN,
-     value_box("Hold time", OPTIONS.length, 0.1, 60, {0.1, 1}, function(x) OPTIONS.length = x end, function(x) return tostring(x).." s." end, tonumber),
-     value_box("Release time", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber)
-   },
-     
-   -- sample processing
-   vb:horizontal_aligner {
-     spacing = UNIT,
-     margin = DEFAULT_MARGIN,
-     mode = "center",
-     vb:button {
-       text = "Normalize Sample Volumes",
-       notifier = normalize
-     },
-     vb:button {
-       text = "Trim Silences",
-       notifier = trim
-     }
-   },
-   
-   -- name
-   textfield("Inst. name", OPTIONS.name, function(x) OPTIONS.name = x end)
- }
+  local content = vb:column {
+    margin = DEFAULT_MARGIN*2,
+    
+    -- big buttons
+    vb:horizontal_aligner {
+      mode = "center",
 
- select_midi_device(1)
- update_status("Waiting...")
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Start",
+        notifier = go
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Stop",
+        notifier = stop
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Recording Settings",
+        notifier = configure
+      }
+    },
+    
+    -- midi device selection
+    midi_list(),
+    
+    -- octave options
+    vb:horizontal_aligner {
+      mode = "center",
+      spacing = DEFAULT_MARGIN,
 
- renoise.app():show_custom_dialog(
-   title, content
- )
+      value_box("Low Octave", OPTIONS.low, 0, 9, {1, 2}, function(x) OPTIONS.low = x end, tostring, math.floor),
+      value_box("High Octave", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor)
+    },
+    
+    -- notes selection
+    note_matrix(),
+    
+    -- sample length
+    vb:horizontal_aligner {
+      mode = "center",
+      spacing = DEFAULT_MARGIN,
 
+      value_box("Hold time", OPTIONS.length, 0.1, 60, {0.1, 1}, function(x) OPTIONS.length = x end, function(x) return tostring(x).." s." end, tonumber),
+      value_box("Release time", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber)
+    },
+      
+    -- sample processing
+    vb:horizontal_aligner {
+      spacing = UNIT,
+      margin = DEFAULT_MARGIN,
+      mode = "center",
+
+      vb:button {
+        text = "Normalize Sample Volumes",
+        notifier = normalize
+      },
+      vb:button {
+        text = "Trim Silences",
+        notifier = trim
+      }
+    },
+    
+    -- name
+    textfield("Inst. name", OPTIONS.name, function(x) OPTIONS.name = x end)
+  }
+
+  select_midi_device(1)
+
+  renoise.app():show_custom_dialog(
+    title, content
+  )
 end

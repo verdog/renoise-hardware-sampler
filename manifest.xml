@@ -3,9 +3,9 @@
   <ApiVersion>6</ApiVersion>
   <Id>hack.dpp.hwsampler</Id>
   <Version>1.0</Version>
-  <Author>taktik [taktik@renoise.com]</Author>
-  <Name>Renoise ViewBuilder API Example</Name>
-  <Category>Tool Development</Category>
-  <Description>A XRNX tool which describes step by step how to create custom GUIs for your Renoise XRNX tools. Please have a look at the source files of this tool (manifest.xml and main.lua) for more info. Also creates a new menu 'Example Tool GUI' in the global 'Tools' menu.</Description>
-  <Homepage>http://scripting.renoise.com</Homepage>
+  <Author>dogsplusplus [@dogsplusplus]</Author>
+  <Name>Midi Hardware Sampler Helper</Name>
+  <Category>Hardware</Category>
+  <Description>Automate the process of collecting, mapping, and tweaking samples from a hardware synthesizer connected via MIDI.</Description>
+  <Homepage>https://github.com/verdog/renoise-hardware-sampler</Homepage>
 </RenoiseScriptingTool>
