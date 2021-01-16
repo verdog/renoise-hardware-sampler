@@ -6,15 +6,16 @@ end
 MIDI_DEVICE = nil
 NOTE_ON = 0x90
 NOTE_OFF = 0x80
+KILL = false
+RECORDING = false
 
 OPTIONS = {
- low = 0,
- high = 9,
+ low = 1,
+ high = 6,
  length = 2,
  release = .2,
- maximize = false,
- threshold = 0.01,
- notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false}
+ notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
+ name = "Recorded Hardware"
 }
 
 C_PRESSED = {100, 100, 100}
@@ -73,6 +74,8 @@ function reset_state()
  FIRST = nil
  DEV = nil
  TOCALL = nil
+ KILL = false
+ RECORDING = false
  
  if renoise.tool():has_timer(start_note) then
    renoise.tool():remove_timer(start_note)
@@ -144,7 +147,6 @@ function go()
  renoise.song().selected_sample_index = 1
  
  -- go!
- update_status("Recording...")
  prep_note()
 end
 
@@ -152,12 +154,139 @@ function finish()
  update_status("Finishing...")
  local inst = renoise.song().selected_instrument
  
+ -- name instrument
+ inst.name = OPTIONS.name
+ 
  -- name samples
  for i=1,table.count(NOTES) do
    inst.samples[i].name = note_to_name(NOTES[i])
  end
+ 
+ -- close recording window
+ renoise.app().window.sample_record_dialog_is_visible = false
+ 
+ -- close midi
+ DEV:close()
+end
 
+function stop()
+ KILL = true
+ if RECORDING then
+   renoise.song().transport:start_stop_sample_recording()
+   RECORDING = false
+   DEV:send({0xB0, 0x7B, 0x00}) -- send all notes off
+ end
+ renoise.app().window.sample_record_dialog_is_visible = false
+ update_status("Stopped")
+end
+
+function configure()
+ renoise.app().window.sample_record_dialog_is_visible = true
+end
+
+function prep_note()
+ print("Prepping note...")
+ renoise.song().selected_sample_index = NOTEI
+ renoise.app().window.sample_record_dialog_is_visible = true
+ renoise.song().transport:start_stop_sample_recording()
+ RECORDING = true
+ call_in(start_note, 100)
+end
+
+function start_note()
+ print("Starting note...")
+ DEV:send({NOTE_ON, NOTES[NOTEI] + 0xC, 0x7F})
+ call_in(release_note, OPTIONS.length * 1000)
+end
+
+function release_note()
+ print("Releasing note...")
+ DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F})
+ call_in(stop_note, OPTIONS.release * 1000)
+end
+
+function stop_note()
+ print("Stopping note...")
+ renoise.app().window.sample_record_dialog_is_visible = true
+ renoise.song().transport:start_stop_sample_recording()
+ RECORDING = false
+ 
+ NOTEI = NOTEI + 1
+ 
+ if NOTES[NOTEI] ~= nil then
+   call_in(prep_note, 100)
+ else
+   call_in(finish, 100)
+ end
+end
+
+TOCALL = nil
+
+function call()
+ renoise.tool():remove_timer(call)
+ if TOCALL and not KILL then
+   TOCALL()
+ end
+end
+
+function call_in(func, mill)
+ TOCALL = func
+ renoise.tool():add_timer(call, mill)
+end
+
+function normalize()
+ stop()
+ update_status("Normalizing Sample Volumes... This may take some time...")
+ -- maximize sample volumes
+ local inst = renoise.song().selected_instrument
+ 
+ local maxes = {}
+ 
+ -- store max for each sample
+ for i = 1,table.count(inst.samples) do
+   local buf = inst.samples[i].sample_buffer
+   -- find peak
+   local chans = buf.number_of_channels
+   local max = 0
+   
+   for c = 1,chans do
+     for f = 1,buf.number_of_frames do
+       max = math.max(math.abs(buf:sample_data(c, f)), max)
+     end
+   end
+   
+   table.insert(maxes, max)
+ end
+ 
+ -- determine highest max
+ local maxmax = 0
+ for k, m in pairs(maxes) do
+   maxmax = math.max(m, maxmax)
+ end
+ 
+ -- apply to samples
+ for i = 1,table.count(inst.samples) do
+   local buf = inst.samples[i].sample_buffer
+   local chans = buf.number_of_channels
+   
+   buf:prepare_sample_data_changes()
+   for c = 1,chans do
+     for f = 1,buf.number_of_frames do
+       local dot = buf:sample_data(c, f)
+       buf:set_sample_data(c, f, 1/maxmax * dot)
+     end
+   end
+   buf:finalize_sample_data_changes()
+ end
+end
+
+function trim()
+ stop()
+ update_status("Trimming Leading Silence From Samples... This may take some time...")
+ 
  -- trim silence
+ local inst = renoise.song().selected_instrument
+ 
  for i = 1,table.count(inst.samples) do
    local buf = inst.samples[i].sample_buffer
    local chans = buf.number_of_channels
@@ -166,9 +295,9 @@ function finish()
    local point = buf.number_of_frames + 1
    for c = 1,chans do
      for f = 1,buf.number_of_frames do
-       if math.abs(buf:sample_data(c, f)) > OPTIONS.threshold then
-         point = math.min(f, point)
-         break
+       if math.abs(buf:sample_data(c, f)) >= 0.009 then
+        point = math.min(f, point)
+        break
        end
      end
    end
@@ -189,111 +318,4 @@ function finish()
    end
    buf:finalize_sample_data_changes()
  end
-
- -- maximize sample volume if specified
- if OPTIONS.maximize then
-   local maxes = {}
-   
-   -- store max for each sample
-   for i = 1,table.count(inst.samples) do
-     local buf = inst.samples[i].sample_buffer
-     -- find peak
-     local chans = buf.number_of_channels
-     local max = 0
-     
-     for c = 1,chans do
-       for f = 1,buf.number_of_frames do
-         max = math.max(math.abs(buf:sample_data(c, f)), max)
-       end
-     end
-     
-     table.insert(maxes, max)
-   end
-   
-   -- determine highest max
-   local maxmax = 0
-   for k, m in pairs(maxes) do
-     maxmax = math.max(m, maxmax)
-   end
-   
-   -- apply to samples
-   for i = 1,table.count(inst.samples) do
-     local buf = inst.samples[i].sample_buffer
-     local chans = buf.number_of_channels
-     
-     buf:prepare_sample_data_changes()
-     for c = 1,chans do
-       for f = 1,buf.number_of_frames do
-         local dot = buf:sample_data(c, f)
-         buf:set_sample_data(c, f, 1/maxmax * dot)
-       end
-     end
-     buf:finalize_sample_data_changes()
-   end
- end
- 
-end
-
-function stop()
-
-end
-
-function configure()
- renoise.app().window.sample_record_dialog_is_visible = true
-end
-
-function prep_note()
- print("Prepping note...")
- renoise.song().selected_sample_index = NOTEI
- renoise.app().window.sample_record_dialog_is_visible = true
- renoise.song().transport:start_stop_sample_recording()
- call_in(start_note, 100)
-end
-
-function start_note()
- print("Starting note...")
- DEV:send({NOTE_ON, NOTES[NOTEI] + 0xC, 0x7F})
- call_in(release_note, OPTIONS.length * 1000)
-end
-
-function release_note()
- print("Releasing note...")
- DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F})
- call_in(stop_note, OPTIONS.release * 1000)
-end
-
-function stop_note()
- print("Stopping note...")
- renoise.app().window.sample_record_dialog_is_visible = true
- renoise.song().transport:start_stop_sample_recording()
- 
- NOTEI = NOTEI + 1
- 
- if NOTES[NOTEI] ~= nil then
-   call_in(prep_note, 100)
- else
-   call_in(finish, 100)
- end
-end
-
-TOCALL = nil
-
-function call()
- print("call")
- renoise.tool():remove_timer(call)
- if TOCALL then
-   print("found TOCALL")
-   TOCALL()
- end
-end
-
-function call_in(func, mill)
- print("call in "..tostring(mill))
- TOCALL = func
- renoise.tool():add_timer(call, mill)
-end
-
-function test_midi()
- update_status("Testing Midi...")
- print("Testing device: "..MIDI_DEVICE)
 end
