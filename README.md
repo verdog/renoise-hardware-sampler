@@ -7,11 +7,11 @@ Automated creation of instruments based on recordings from a hardware device for
 
 ### Installation
 
-Drag and drop `hack.dpp.hwsampler.xrnx` onto an active Renoise window
+Drag and drop `hack.dpp.hwsampler.xrnx` onto an active Renoise window.
 
 ### Usage
 
-To use the tool, right click on the waveform editor and choose "Record Samples from MIDI Hardware"
+To use the tool, right click on the waveform editor and choose "Record Samples from MIDI Hardware".
 
 #### Overview
 
