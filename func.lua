@@ -184,12 +184,16 @@ end
 function stop()
   KILL = true
   if RECORDING then
+    renoise.app().window.sample_record_dialog_is_visible = true
     renoise.song().transport:start_stop_sample_recording()
     RECORDING = false
+    DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F}) -- release current note
     DEV:send({0xB0, 0x7B, 0x00}) -- send all notes off
   end
   renoise.app().window.sample_record_dialog_is_visible = false
-  DEV:close()
+  if DEV and DEV.is_open then
+    DEV:close()
+  end
   update_status("Stopped")
 end
 
@@ -212,6 +216,7 @@ end
 -- play the note
 function start_note()
   print("Starting note...")
+  DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F}) -- just in case...
   DEV:send({NOTE_ON, NOTES[NOTEI] + 0xC, 0x7F})
   call_in(release_note, OPTIONS.length * 1000)
 end
