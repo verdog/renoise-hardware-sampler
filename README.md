@@ -9,13 +9,15 @@ Automated creation of instruments based on recordings from a hardware device for
 
 Drag and drop `hack.dpp.hwsampler.xrnx` onto an active Renoise window.
 
+### Overview
+
+The general idea of this tool is to automate the process of recording played notes from your hardware, trimming silence, normalizing volume, and mapping to key zones. The buttons you see when you open the menu change various things about how this is done.
+
 ### Usage
 
 To use the tool, right click on the waveform editor and choose "Record Samples from MIDI Hardware".
 
-#### Overview
-
-The general idea of this tool is to automate the process of recording played notes from your hardware, trimming silence, normalizing volume, and mapping to key zones. The buttons you see when you open the menu change various things about how this is done.
+The buttons have the following functions:
 
 #### Start, Stop, Recording Settings
 
@@ -33,13 +35,13 @@ Opens the Renoise sample recording window. **You must change the settings in thi
 
 This is a good time to make sure that Renoise can hear your hardware. Play a note and the indicator at the top of the sample recorder window should react to the audio.
 
-#### Midi Device
+#### Midi and note options
+
+In this section you configure your midi device and decide which notes to actually sample.
+
+##### Midi Device
 
 Midi device to send note commands to.
-
-#### Low Octave, High Octave, Notes Matrix
-
-In this section you decide which notes to actually sample.
 
 ##### Low Octave
 
@@ -51,35 +53,25 @@ The highest octave to sample (inclusive).
 
 ##### Notes Matrix
 
-Select the notes you would like to sample in each of the selected octaves by clicking the note buttons. Dark grey means the note won't be sampled, and light grey means it will be sampled.
+Select the notes you would like to sample in each of the selected octaves by clicking the note buttons. Dark gray means the note won't be sampled, and light gray means it will be sampled.
 
-#### Note Mapping Style
+##### Mapping Style
 
-This tool maps recorded notes in the following fashion:
+This setting decides how samples will be mapped to keyzones. Specifically, it decides in which direction the keyzone will grow from the base note to make up for samples that are missing.
 
-For each recorded note, map it to its base note up to the next recorded note.
+The lowest sample will always be mapped starting at C0, and the highest ending at B9.
 
-Extend the mapping of the lowest recorded note to C0.
+###### Up
 
-Extend the mapping of the highest recorded note to B9.
+The key zone starts at the base note and extends upwards in pitch to the next note.
 
-##### Example
+###### Down
 
-If we sample the following notes:
+Like up, but instead of extending to a higher note, the key zone is extended downward to a lower note.
 
-```
-C4, E4, G#4
-```
+###### Middle
 
-They would be mapped in the following way:
-
-* The C4 sample would be mapped to C0 - D#4
-* The E4 sample would be mapped to E4 - G4
-* The G#4 sample would be mapped to G#4 - B9
-
-#### Hold Time, Release Time
-
-In this section you tweak the length of the recorded sample.
+The keyzone is extended in both directions. Any note that doesn't have a direct mapping to a sample will be mapped to the one closest in pitch.
 
 ##### Hold Time
 
@@ -89,21 +81,25 @@ The amount of time in seconds that the recorded note will be held down.
 
 The amount of time to wait, after releasing the note, to stop recording the sample.
 
-#### Normalize Sample Volumes, Trim Silences
+#### Post processing
 
 These are post-processing options. Click these buttons after the recording process is finished. It is also possible to use these on samples recorded via other means than this tool -- the buttons simply process all current samples.
 
-These functions can take some time when you have recorded a lot of samples. If the Renoise dialog asking to kill the script pops up, select no and wait patiently. :-)
+##### Process in background
+
+When checked, the post processing options will use less CPU and process in the background, allowing you to close the tool window and use Renoise elsewhere. 
+
+When not checked, more CPU is allocated to the post processing functions and they will finish more quickly. Closing the window will stop the processes in this case.
 
 ##### Normalize Sample Volumes
 
-Boost sample volume as much as possible, while maintaining the current relative volume levels between samples. In other words, find the loudest sample, maximize its volume, and increase the volume of all other samples by that amount.
+Boost sample volume as much as possible, while maintaining the current relative volume levels between samples. In other words, find the loudest sample, maximize its volume, and increase the volume of all other samples by the same amount.
 
 ##### Trim Silences
 
 For each sample, remove any leading silence.
 
-#### Inst. Name
+#### Instrument Name
 
 Sets the instrument name after samples are recorded.
 
