@@ -7,7 +7,8 @@ OPTIONS = {
   length = 2,
   release = .2,
   notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
-  name = "Recorded Hardware"
+  name = "Recorded Hardware",
+  background = false
 }
 
 -- note button colors
@@ -244,90 +245,5 @@ function stop_note()
   end
 end
 
--- boost each sample's volume an equal amount
-function normalize()
-  stop()
-  update_status("Normalizing Sample Volumes... This may take some time...")
-  -- maximize sample volumes
-  local inst = renoise.song().selected_instrument
 
-  local maxes = {}
 
-  -- store max for each sample
-  for i = 1,table.count(inst.samples) do
-    local buf = inst.samples[i].sample_buffer
-    -- find peak
-    local chans = buf.number_of_channels
-    local max = 0
-    
-    for c = 1,chans do
-      for f = 1,buf.number_of_frames do
-        max = math.max(math.abs(buf:sample_data(c, f)), max)
-      end
-    end
-    
-    table.insert(maxes, max)
-  end
-
-  -- determine highest max
-  local maxmax = 0
-  for k, m in pairs(maxes) do
-    maxmax = math.max(m, maxmax)
-  end
-
-  -- apply to samples
-  for i = 1,table.count(inst.samples) do
-    local buf = inst.samples[i].sample_buffer
-    local chans = buf.number_of_channels
-    
-    buf:prepare_sample_data_changes()
-    for c = 1,chans do
-      for f = 1,buf.number_of_frames do
-        local dot = buf:sample_data(c, f)
-        buf:set_sample_data(c, f, 1/maxmax * dot)
-      end
-    end
-    buf:finalize_sample_data_changes()
-  end
-end
-
--- remove silence from the beginning of all samples
-function trim()
-  stop()
-  update_status("Trimming Leading Silence From Samples... This may take some time...")
-
-  -- trim silence
-  local inst = renoise.song().selected_instrument
-
-  for i = 1,table.count(inst.samples) do
-    local buf = inst.samples[i].sample_buffer
-    local chans = buf.number_of_channels
-    
-    -- find cutting point
-    local point = buf.number_of_frames + 1
-    for c = 1,chans do
-      for f = 1,buf.number_of_frames do
-        if math.abs(buf:sample_data(c, f)) >= 0.009 then
-        point = math.min(f, point)
-        break
-        end
-      end
-    end
-    
-    print("Cutting at "..tostring(point))
-    
-    -- "cut"
-    -- actually copying data closer to start and zeroing out the rest
-    buf:prepare_sample_data_changes()
-    for c = 1,chans do
-      for f = 1,buf.number_of_frames do
-        if f < buf.number_of_frames - point then
-          buf:set_sample_data(c, f, buf:sample_data(c, f+point))
-        else
-          buf:set_sample_data(c, f, 0)
-        end
-      end
-    end
-    buf:finalize_sample_data_changes()
-  end
-end
