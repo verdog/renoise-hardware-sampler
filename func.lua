@@ -8,7 +8,8 @@ OPTIONS = {
   release = .2,
   notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
   name = "Recorded Hardware",
-  background = false
+  background = false,
+  mapping = 2
 }
 
 -- note button colors
@@ -98,12 +99,24 @@ end
 
 -- check for invalid options
 function check()
- if OPTIONS.low > OPTIONS.high then
-   renoise.app():show_prompt("Oops!", "Low octave must be <= high octave.", {"OK"})
-   return false
- end
+  if OPTIONS.low > OPTIONS.high then
+    renoise.app():show_prompt("Oops!", "Low octave must be <= high octave.", {"OK"})
+    return false
+  end
  
- return true
+  local foundnote = false
+  for i=0,11 do
+    if OPTIONS.notes[i] == true then
+      foundnote = true
+      break
+    end
+  end
+  if not foundnote then
+    renoise.app():show_prompt("Oops!", "You must select at least one note.", {"OK"})
+    return false
+  end
+ 
+  return true
 end
 
 -- start the recording process
@@ -133,32 +146,91 @@ function go()
   end
 
   -- set up mappings
+  local mapping_dict = {}
+  
   for i=1,table.count(NOTES) do
-    rprint(inst.sample_mappings)
-    local mapping = inst.sample_mappings[1][i]
-    mapping.base_note = NOTES[i]
-    
     local low
-    if i == 1 then
-      low = 0
-    else
-      low = NOTES[i]
+    local high
+    
+    if OPTIONS.mapping == 1 then -- down
+      if i == 1 then
+        low = 0
+      else
+        low = NOTES[i-1] + 1
+      end
+      
+      if i == table.count(NOTES) then
+        high = 119
+      else
+        high = NOTES[i]
+      end
+    elseif OPTIONS.mapping == 2 then -- middle
+      local function get_dists(note)
+        local up = 1
+        local down = 1
+        
+        -- up
+        local i = (note + 1)%12
+        while not OPTIONS.notes[i] do
+          i = (i + 1)%12
+          up = up + 1
+        end
+        
+        -- down
+        i = (note - 1)%12
+        while not OPTIONS.notes[i] do
+          i = (i - 1)%12
+          down = down + 1
+        end
+        
+        return {up = math.floor(up/2), down = math.floor((down-1)/2)}
+      end
+      
+      local diffs = get_dists(NOTES[i])
+      
+      if i == 1 then
+        diffs.down = NOTES[i]
+      elseif i == table.count(NOTES) then
+        diffs.up = 119 - NOTES[i]
+      end
+      
+      low = NOTES[i] - diffs.down
+      high = NOTES[i] + diffs.up
+    elseif OPTIONS.mapping == 3 then -- up
+      if i == 1 then
+        low = 0
+      else
+        low = NOTES[i]
+      end
+      
+      if i == table.count(NOTES) then
+        high = 119
+      else
+        high = NOTES[i+1] - 1
+      end
     end
     
-    local high
-    if i == table.count(NOTES) then
-      high = 119
-    else
-      high = NOTES[i+1] - 1
-    end
-    mapping.note_range={low, high}
+    mapping_dict[NOTES[i]]={low, high}
   end
+  
+  do_mapping(mapping_dict)
 
   -- start on first sample
   renoise.song().selected_sample_index = 1
 
   -- go!
   prep_note()
+end
+
+function do_mapping(mapping_dict)
+  local inst = renoise.song().selected_instrument
+  for i=1,table.count(NOTES) do
+    if mapping_dict[NOTES[i]] then
+      local mapping = inst.sample_mappings[1][i]
+      mapping.base_note = NOTES[i]
+      mapping.note_range = mapping_dict[NOTES[i]]
+    end
+  end
 end
 
 -- apply finishing touches

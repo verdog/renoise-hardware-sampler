@@ -142,6 +142,23 @@ function show_menu()
       -- notes selection
       note_matrix(),
       
+      -- mapping style
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+        spacing = DEFAULT_MARGIN,
+        
+        
+        vb:text {
+          text = "Mapping style:"
+        },
+        vb:switch {
+          width = "80%",
+          items = {"Down", "Middle", "Up"},
+          value = OPTIONS.mapping,
+          notifier = function(x) OPTIONS.mapping = x end
+        }
+      },
+      
       -- sample length
       vb:horizontal_aligner {
         mode = "center",
@@ -214,7 +231,7 @@ function show_menu()
     },
     
     -- name
-    textfield("Instrument name", OPTIONS.name, function(x) OPTIONS.name = x end)
+    textfield("Instrument name", OPTIONS.name, function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end)
   }
 
   select_midi_device(1)
