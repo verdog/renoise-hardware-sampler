@@ -1,6 +1,8 @@
 # renoise-hardware-sampler
 Automated creation of instruments based on recordings from a hardware device for Renoise
 
+![GUI](img/menu.png)
+
 ---
 
 ## How To
