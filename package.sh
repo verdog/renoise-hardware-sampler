@@ -1,3 +1,6 @@
 #!/bin/bash
 
-zip -vr hack.dpp.hwsampler.xrnx *.lua manifest.xml
+ID=$(sed -n 's:.*<Id>\(.*\)</Id>.*:\1:p' manifest.xml)
+echo Creating "$ID.xrnx"
+rm -f *.xrnx
+zip -vr "$ID.xrnx" *.lua manifest.xml
