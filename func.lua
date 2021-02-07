@@ -51,6 +51,12 @@ function select_midi_device(dev)
   print("Selected device: "..MIDI_DEVICE)
 end
 
+function select_midi_channel(channel)
+  print("Selected channel: "..channel)
+  NOTE_ON = bit.bor(0x90, channel-1)
+  NOTE_OFF = bit.bor(0x80, channel-1)
+end
+
 -- get midi device object
 function get_midi_dev()
   print("Getting device: "..MIDI_DEVICE)

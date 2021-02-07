@@ -2,7 +2,7 @@
 <RenoiseScriptingTool doc_version="0">
   <ApiVersion>6</ApiVersion>
   <Id>hack.dpp.hwsampler</Id>
-  <Version>1.1</Version>
+  <Version>1.2</Version>
   <Author>dogsplusplus [@dogsplusplus]</Author>
   <Name>Midi Hardware Sampler Helper</Name>
   <Category>Hardware</Category>

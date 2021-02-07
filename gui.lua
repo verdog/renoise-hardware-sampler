@@ -65,16 +65,27 @@ end
 function midi_list()
   return vb:horizontal_aligner {
     margin = DEFAULT_MARGIN,
-    spacing = DEFAULT_MARGIN,
+    spacing = 1,
+    mode = "distribute",
     vb:text {
-      width = "20%",
-      text = "Midi Device"
+      width = "10%",
+      text = "Device"
     },
     vb:popup {
-      width = "80%",
-      value = 2,
+      width = "50%",
       items = renoise.Midi.available_output_devices(),
       notifier = select_midi_device
+    },
+    vb:text {
+      width = "15%",
+      text = "Channel"
+    },
+    vb:popup {
+      width = "15%",
+      value = 1,
+      items = {"1", "2", "3", "4", "5", "6", "7", "8",
+        "9", "10", "11", "12", "13", "14", "15", "16"},
+      notifier = select_midi_channel
     }
   }
 end
