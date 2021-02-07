@@ -7,6 +7,12 @@ Automated creation of instruments based on recordings from a hardware device for
 
 ## How To
 
+### Building
+
+Run `./package.sh` to create the .xrnx file.
+
+You can also download the latest .xrnx in the releases section.
+
 ### Installation
 
 Drag and drop `hack.dpp.hwsampler.xrnx` onto an active Renoise window.
