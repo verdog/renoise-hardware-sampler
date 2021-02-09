@@ -7,22 +7,10 @@ DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
 UNIT = renoise.ViewBuilder.DEFAULT_CONTROL_HEIGHT
 
 function textfield(_text, _value, _notif)
-  return vb:horizontal_aligner {
-    margin = DEFAULT_MARGIN,
-
-    vb:text {
-      text = _text.." ",
-      width = "25%"
-    },
-    vb:textfield {
-      value = _value,
-      notifier = _notif,
-      width = "75%"
-    }
-  }
+  return
 end
 
-function value_box(_text, _value, _min, _max, _steps, _notif, _tostring, _tonum, _width)
+function value_box(_text, _tip, _value, _min, _max, _steps, _notif, _tostring, _tonum, _width)
   return vb:row {
     vb:text {
       text = _text.." " 
@@ -35,7 +23,8 @@ function value_box(_text, _value, _min, _max, _steps, _notif, _tostring, _tonum,
       notifier = _notif,
       value = _value,
       steps = _steps,
-      width = _width or UNIT*4
+      width = _width or UNIT*4,
+      tooltip = _tip
     }
   }
 end
@@ -55,7 +44,8 @@ function note_matrix()
       width = UNIT*1.5,
       height = UNIT*1.5,
       color = OPTIONS.notes[note-1] and C_PRESSED or C_NOT_PRESSED,
-      notifier = function() toggle_note(note - 1) end
+      notifier = function() toggle_note(note - 1) end,
+      tooltip = "Select notes that will be sampled in each octave."
     }
     row:add_child(button)
   end
@@ -74,7 +64,8 @@ function midi_list()
     vb:popup {
       width = "50%",
       items = renoise.Midi.available_output_devices(),
-      notifier = select_midi_device
+      notifier = select_midi_device,
+      tooltip = "MIDI device to send MIDI signals to."
     },
     vb:text {
       width = "15%",
@@ -85,7 +76,8 @@ function midi_list()
       value = 1,
       items = {"1", "2", "3", "4", "5", "6", "7", "8",
         "9", "10", "11", "12", "13", "14", "15", "16"},
-      notifier = select_midi_channel
+      notifier = select_midi_channel,
+      tooltip = "Which MIDI channel to send signals over."
     }
   }
 end
@@ -108,19 +100,22 @@ function show_menu()
         width = "33%",
         height = 2*UNIT,
         text = "Start",
-        notifier = go
+        notifier = go,
+        tooltip = "Start the recording process."
       },
       vb:button {
         width = "33%",
         height = 2*UNIT,
         text = "Stop",
-        notifier = stop
+        notifier = stop,
+        tooltip = "Stop the recording process."
       },
       vb:button {
         width = "33%",
         height = 2*UNIT,
         text = "Recording Settings",
-        notifier = configure
+        notifier = configure,
+        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
       }
     },
     
@@ -146,8 +141,8 @@ function show_menu()
         mode = "center",
         spacing = DEFAULT_MARGIN,
   
-        value_box("Low Octave", OPTIONS.low, 0, 9, {1, 2}, function(x) OPTIONS.low = x end, tostring, math.floor),
-        value_box("High Octave", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor)
+        value_box("Low Octave", "The lowest octave from which to sample.", OPTIONS.low, 0, 9, {1, 2}, function(x) OPTIONS.low = x end, tostring, math.floor),
+        value_box("High Octave", "The highest octave from which to sample.", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor)
       },
       
       -- notes selection
@@ -166,7 +161,11 @@ function show_menu()
           width = "80%",
           items = {"Down", "Middle", "Up"},
           value = OPTIONS.mapping,
-          notifier = function(x) OPTIONS.mapping = x end
+          notifier = function(x) OPTIONS.mapping = x end,
+          tooltip = "How samples are mapped to keys.\n"..
+          "\nDown: Sampled notes will be mapped to their root note and to notes between the root and the next lowest sample.\n"..
+          "\nMiddle: Given a key, it will be mapped to the closest existing sample.\n"..
+          "\nUp: Sampled notes will be mapped to their root note and to notes between the root and the next highest sample."
         }
       },
       
@@ -175,8 +174,8 @@ function show_menu()
         mode = "center",
         spacing = DEFAULT_MARGIN,
   
-        value_box("Hold time", OPTIONS.length, 0.1, 60, {0.1, 1}, function(x) OPTIONS.length = x end, function(x) return tostring(x).." s." end, tonumber),
-        value_box("Release time", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber)
+        value_box("Hold time", "How long the note on signal will be held.", OPTIONS.length, 0.1, 60, {0.1, 1}, function(x) OPTIONS.length = x end, function(x) return tostring(x).." s." end, tonumber),
+        value_box("Release time", "How long the tool will wait for the note to release after note off.", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber)
       }
     },
       
@@ -207,7 +206,8 @@ function show_menu()
           },
           vb:checkbox{
             value = OPTIONS.background, 
-            notifier = function(x) OPTIONS.background = x end
+            notifier = function(x) OPTIONS.background = x end,
+            tooltip = "If checked, process the samples a little bit slower in order to make Renoise more usable while the processing is done."
           }
         },
         vb:row {
@@ -232,17 +232,32 @@ function show_menu()
         
         vb:button {
           text = "Normalize Sample Volumes",
-          notifier = normalize
+          notifier = normalize,
+          tooltip = "Raise the volume of each sample an equal amount. The amount will be the amount that the loudest sample can be raised before clipping."
         },
         vb:button {
           text = "Trim Silences",
-          notifier = trim
+          notifier = trim,
+          tooltip = "Remove any silence at the beginning of all samples."
+        }
+      },
+      
+      -- name
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+    
+        vb:text {
+          text = "Instrument name ",
+          width = "25%"
+        },
+        vb:textfield {
+          value = OPTIONS.name,
+          notifier =  function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end,
+          width = "75%",
+          tooltip = "Instrument name to set when sampling is over."
         }
       }
-    },
-    
-    -- name
-    textfield("Instrument name", OPTIONS.name, function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end)
+    }
   }
 
   select_midi_device(1)
