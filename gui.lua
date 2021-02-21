@@ -142,7 +142,8 @@ function show_menu()
         spacing = DEFAULT_MARGIN,
   
         value_box("Low Octave", "The lowest octave from which to sample.", OPTIONS.low, 0, 9, {1, 2}, function(x) OPTIONS.low = x end, tostring, math.floor),
-        value_box("High Octave", "The highest octave from which to sample.", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor)
+        value_box("High Octave", "The highest octave from which to sample.", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor),
+        value_box("Vel. Layers", "How many different equally spaced velocities to sample for a given note.", OPTIONS.layers, 1, 32, {1, 2}, function(x) OPTIONS.layers = x end, tostring, math.floor)
       },
       
       -- notes selection

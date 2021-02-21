@@ -59,6 +59,10 @@ The lowest octave to sample (inclusive). The octave settings correspond to the o
 
 The highest octave to sample (inclusive).
 
+##### Vel. Layers
+
+For each sampled note, record this many samples of equally spaced velocities.
+
 ##### Notes Matrix
 
 Select the notes you would like to sample in each of the selected octaves by clicking the note buttons. Dark gray means the note won't be sampled, and light gray means it will be sampled.

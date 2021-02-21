@@ -1,4 +1,5 @@
 require"util"
+require"midi"
 
 -- global options box
 OPTIONS = {
@@ -9,30 +10,50 @@ OPTIONS = {
   notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
   name = "Recorded Hardware",
   background = false,
-  mapping = 2
+  mapping = 2,
+  layers = 1
 }
 
 -- note button colors
 C_PRESSED = {100, 100, 100}
 C_NOT_PRESSED = {20, 20, 20}
 
--- midi signal constants
-NOTE_ON = 0x90
-NOTE_OFF = 0x80
-
 -- state
-MIDI_DEVICE = nil -- current midi device name
-DEV = nil         -- current midi device object
-RECORDING = false -- are we actively recording
-NOTES = nil       -- list of notes to send to the midi device
-NOTEI = nil       -- current index in note list
+STATE = {
+  midi_device = nil,    -- current midi device name
+  dev = nil,            -- current midi device object
+  recording = false,    -- are we actively recording
+  notes = nil,          -- list of notes to send to the midi device
+  notei = nil,          -- current index in note list
+  layers = nil,         -- number of velocity layers for each note
+  layeri = nil,         -- current layer
+  total = nil           -- total amount of notes that will be sampled
+}
 
-function update_status(status)
-  renoise.app():show_status(status)
-  print(status)
+-- reset state to be ready to record
+function reset_state()
+  STATE.notei = nil
+  STATE.notes = nil
+  STATE.dev = nil
+  STATE.recording = false
+  STATE.layers = nil
+  STATE.layeri = nil
+  STATE.total = nil
+  
+  TOCALL = nil -- from util.lua
+  KILL = false -- from util.lua
+
+  -- erase any timers
+  if renoise.tool():has_timer(start_note) then
+    renoise.tool():remove_timer(start_note)
+  end
+
+  if renoise.tool():has_timer(stop_note) then
+    renoise.tool():remove_timer(stop_note)
+  end
 end
 
--- toggle a note to record on or off
+-- toggle a note to record on or off in the gui
 function toggle_note(note)
   print("toggling note "..tostring(note))
 
@@ -42,25 +63,6 @@ function toggle_note(note)
   -- set visual
   vb.views["note_button_"..tostring(note)].color = 
     OPTIONS.notes[note] and C_PRESSED or C_NOT_PRESSED
-end
-
-
--- get midi device name
-function select_midi_device(dev)
-  MIDI_DEVICE = renoise.Midi.available_output_devices()[dev]
-  print("Selected device: "..MIDI_DEVICE)
-end
-
-function select_midi_channel(channel)
-  print("Selected channel: "..channel)
-  NOTE_ON = bit.bor(0x90, channel-1)
-  NOTE_OFF = bit.bor(0x80, channel-1)
-end
-
--- get midi device object
-function get_midi_dev()
-  print("Getting device: "..MIDI_DEVICE)
-  return renoise.Midi.create_output_device(MIDI_DEVICE)
 end
 
 -- generate list of midi notes to send to the controller
@@ -75,32 +77,6 @@ function gen_notes()
     end
   end
   return ret
-end
-
--- convert a renoise note number to its name
-function note_to_name(note)
-  local octave = math.floor(note/12)
-  local key = note % 12
-  local keys = {[0]="C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-  return keys[key] .. tostring(octave)
-end
-
--- reset state to be ready to record
-function reset_state()
-  NOTEI = nil
-  NOTES = nil
-  DEV = nil
-  TOCALL = nil
-  KILL = false
-  RECORDING = false
-
-  if renoise.tool():has_timer(start_note) then
-    renoise.tool():remove_timer(start_note)
-  end
-
-  if renoise.tool():has_timer(stop_note) then
-    renoise.tool():remove_timer(stop_note)
-  end
 end
 
 -- check for invalid options
@@ -135,10 +111,16 @@ function go()
     return false
   end
 
-  NOTES = gen_notes()
-  NOTEI = 1
-  DEV = get_midi_dev()
+  STATE.notes = gen_notes()
+  STATE.notei = 1
+  STATE.dev = get_midi_dev()
+  STATE.layers = OPTIONS.layers
+  STATE.layeri = 1
+  STATE.total = table.count(STATE.notes) * STATE.layers
+  
+  print("Going to create "..tostring(STATE.total).." samples.")
 
+  -- get inst
   local inst = renoise.song().selected_instrument
 
   -- clear samples
@@ -147,14 +129,22 @@ function go()
   end
 
   -- insert blank samples
-  for i=1,table.count(NOTES) do
+  for i=1,STATE.total do
     inst:insert_sample_at(i)
   end
 
+  -- start on first sample
+  renoise.song().selected_sample_index = 1
+
+  -- go!
+  prep_note()
+end
+
+function get_mapping_dict()
   -- set up mappings
   local mapping_dict = {}
   
-  for i=1,table.count(NOTES) do
+  for i=1,table.count(STATE.notes) do
     local low
     local high
     
@@ -162,13 +152,13 @@ function go()
       if i == 1 then
         low = 0
       else
-        low = NOTES[i-1] + 1
+        low = STATE.notes[i-1] + 1
       end
       
-      if i == table.count(NOTES) then
+      if i == table.count(STATE.notes) then
         high = 119
       else
-        high = NOTES[i]
+        high = STATE.notes[i]
       end
     elseif OPTIONS.mapping == 2 then -- middle
       local function get_dists(note)
@@ -192,49 +182,52 @@ function go()
         return {up = math.floor(up/2), down = math.floor((down-1)/2)}
       end
       
-      local diffs = get_dists(NOTES[i])
+      local diffs = get_dists(STATE.notes[i])
       
       if i == 1 then
-        diffs.down = NOTES[i]
-      elseif i == table.count(NOTES) then
-        diffs.up = 119 - NOTES[i]
+        diffs.down = STATE.notes[i]
+      elseif i == table.count(STATE.notes) then
+        diffs.up = 119 - STATE.notes[i]
       end
       
-      low = NOTES[i] - diffs.down
-      high = NOTES[i] + diffs.up
+      low = STATE.notes[i] - diffs.down
+      high = STATE.notes[i] + diffs.up
     elseif OPTIONS.mapping == 3 then -- up
       if i == 1 then
         low = 0
       else
-        low = NOTES[i]
+        low = STATE.notes[i]
       end
       
-      if i == table.count(NOTES) then
+      if i == table.count(STATE.notes) then
         high = 119
       else
-        high = NOTES[i+1] - 1
+        high = STATE.notes[i+1] - 1
       end
     end
     
-    mapping_dict[NOTES[i]]={low, high}
+    mapping_dict[STATE.notes[i]]={low, high}
   end
   
-  do_mapping(mapping_dict)
-
-  -- start on first sample
-  renoise.song().selected_sample_index = 1
-
-  -- go!
-  prep_note()
+  return mapping_dict
 end
 
 function do_mapping(mapping_dict)
   local inst = renoise.song().selected_instrument
-  for i=1,table.count(NOTES) do
-    if mapping_dict[NOTES[i]] then
-      local mapping = inst.sample_mappings[1][i]
-      mapping.base_note = NOTES[i]
-      mapping.note_range = mapping_dict[NOTES[i]]
+  
+  for i=1,table.count(STATE.notes) do
+    for l=1,STATE.layers do
+      if mapping_dict[STATE.notes[i]] then
+        local idx = (i-1)*STATE.layers + (l-1) + 1
+        local mapping = inst.sample_mappings[1][idx]
+        
+        mapping.base_note = STATE.notes[i]
+        mapping.note_range = mapping_dict[STATE.notes[i]]
+        
+        local lunit = 128/STATE.layers
+        local lrange = {math.floor((l-1)*lunit), math.floor((l)*lunit - 1)}
+        mapping.velocity_range = lrange
+      end
     end
   end
 end
@@ -244,34 +237,43 @@ function finish()
   update_status("Finishing...")
   local inst = renoise.song().selected_instrument
 
+  local lunit = 128/STATE.layers
+
   -- name instrument
   inst.name = OPTIONS.name
 
   -- name samples
-  for i=1,table.count(NOTES) do
-    inst.samples[i].name = note_to_name(NOTES[i])
+  for i=1,table.count(STATE.notes) do
+    for l=1,STATE.layers do
+      local vel = math.floor((l)*lunit - 1)
+      local idx = (i-1)*STATE.layers + (l-1) + 1
+      inst.samples[idx].name = note_to_name(STATE.notes[i]).."_"..string.format("%X", vel)
+    end
   end
+
+  -- do mappings
+  do_mapping(get_mapping_dict())
 
   -- close recording window
   renoise.app().window.sample_record_dialog_is_visible = false
 
   -- close midi
-  DEV:close()
+  STATE.dev:close()
 end
 
 -- kill switch
 function stop()
   KILL = true
-  if RECORDING then
+  if STATE.recording then
     renoise.app().window.sample_record_dialog_is_visible = true
     renoise.song().transport:start_stop_sample_recording()
-    RECORDING = false
-    DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F}) -- release current note
-    DEV:send({0xB0, 0x7B, 0x00}) -- send all notes off
+    STATE.recording = false
+    STATE.dev:send({NOTE_OFF, STATE.notes[STATE.notei] + 0xC, 0x40}) -- release current note
+    STATE.dev:send({ALL_NOTE_OFF_1 , ALL_NOTE_OFF_2, 0x00}) -- send all notes off
   end
   renoise.app().window.sample_record_dialog_is_visible = false
-  if DEV and DEV.is_open then
-    DEV:close()
+  if STATE.dev and STATE.dev.is_open then
+    STATE.dev:close()
   end
   update_status("Stopped")
 end
@@ -284,26 +286,31 @@ end
 -- get ready to play a note
 -- recording starts here
 function prep_note()
-  print("Prepping note...")
-  renoise.song().selected_sample_index = NOTEI
+  local idx = (STATE.notei-1)*STATE.layers + (STATE.layeri-1) + 1
+  print("Prepping note "..tostring(idx).."...")
+  renoise.song().selected_sample_index = idx
   renoise.app().window.sample_record_dialog_is_visible = true
   renoise.song().transport:start_stop_sample_recording()
-  RECORDING = true
-  call_in(start_note, 100)
+  STATE.recording = true
+  call_in(start_note, 50)
 end
 
 -- play the note
 function start_note()
   print("Starting note...")
-  DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F}) -- just in case...
-  DEV:send({NOTE_ON, NOTES[NOTEI] + 0xC, 0x7F})
+  STATE.dev:send({NOTE_OFF, STATE.notes[STATE.notei] + 0xC, 0x40}) -- just in case...
+  
+  local lunit = 128/STATE.layers
+  local vel = math.floor((STATE.layeri)*lunit - 1)
+  
+  STATE.dev:send({NOTE_ON, STATE.notes[STATE.notei] + 0xC, vel})
   call_in(release_note, OPTIONS.length * 1000)
 end
 
 -- release the note
 function release_note()
   print("Releasing note...")
-  DEV:send({NOTE_OFF, NOTES[NOTEI] + 0xC, 0x7F})
+  STATE.dev:send({NOTE_OFF, STATE.notes[STATE.notei] + 0xC, 0x40})
   call_in(stop_note, OPTIONS.release * 1000)
 end
 
@@ -312,14 +319,19 @@ function stop_note()
   print("Stopping note...")
   renoise.app().window.sample_record_dialog_is_visible = true
   renoise.song().transport:start_stop_sample_recording()
-  RECORDING = false
+  STATE.recording = false
 
-  NOTEI = NOTEI + 1
+  STATE.layeri = STATE.layeri + 1
+  
+  if STATE.layeri > STATE.layers then
+    STATE.layeri = 1
+    STATE.notei = STATE.notei + 1
+  end
 
-  if NOTES[NOTEI] ~= nil then
-    call_in(prep_note, 100)
+  if STATE.notes[STATE.notei] ~= nil then
+    call_in(prep_note, 50)
   else
-    call_in(finish, 100)
+    call_in(finish, 50)
   end
 end
 
