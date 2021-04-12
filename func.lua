@@ -10,6 +10,8 @@ OPTIONS = {
   notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
   name = "Recorded Hardware",
   background = false,
+  post_record_normalize_and_trim = false,
+  mapping = 2,
   mapping = 2,
   layers = 1
 }
@@ -259,6 +261,25 @@ function finish()
 
   -- close midi
   STATE.dev:close()
+
+  -- normalize samples if enabled
+  if OPTIONS.post_record_normalize_and_trim then
+    post_record_normalize_and_trim()
+  end
+end
+
+-- normalize and trim the samples
+function post_record_normalize_and_trim()
+  update_status("Normalizing samples...")
+  if not pcall(normalize) then
+    update_status("Normalizing samples failed")
+    return
+  end
+
+  update_status("Normalizing samples...")
+  if not pcall(trim) then
+    update_status("Trimming samples failed")
+  end
 end
 
 -- kill switch

@@ -91,31 +91,43 @@ function show_menu()
     width = UNIT*20,
     spacing = UNIT/2,
     
-    -- big buttons
-    vb:horizontal_aligner {
-      mode = "center",
+    -- instrument naming
+    vb:column {
+      style = "panel",
+      margin = DEFAULT_MARGIN,
       width = "100%",
 
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Start",
-        notifier = go,
-        tooltip = "Start the recording process."
+      vb:text {
+        text = "Name",
+        align = "center",
+        width = "100%"
       },
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Stop",
-        notifier = stop,
-        tooltip = "Stop the recording process."
+
+      vb:space {
+        height = UNIT/3
       },
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Recording Settings",
-        notifier = configure,
-        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
+      
+      -- name
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+    
+        vb:text {
+          text = "Instrument name ",
+          width = "25%"
+        },
+        vb:textfield {
+          id = "instrument_name_textfield",
+          value = OPTIONS.name,
+          notifier =  function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end,
+          width = "50%",
+          tooltip = "Instrument name to set when sampling is over."
+        },
+        vb:button {
+          text = "Auto-Name",
+          notifier = autoname,
+          width = "25%",
+          tooltip = "Generate a random instrument name"
+        }
       }
     },
     
@@ -180,6 +192,52 @@ function show_menu()
       }
     },
       
+    -- big buttons
+    vb:horizontal_aligner {
+      mode = "center",
+      width = "100%",
+
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Start",
+        notifier = go,
+        tooltip = "Start the recording process."
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Stop",
+        notifier = stop,
+        tooltip = "Stop the recording process."
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Recording Settings",
+        notifier = configure,
+        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
+      }
+    },
+    vb:horizontal_aligner {
+      spacing = UNIT,
+      margin = DEFAULT_MARGIN,
+
+      vb:row {
+        spacing = UNIT/3,
+
+        vb:checkbox {
+          value = OPTIONS.post_record_normalize_and_trim,
+          notifier = function(x) OPTIONS.post_record_normalize = x end,
+          tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
+        },
+
+        vb:text {
+          text = "Normalize and Trim samples after recording"
+        }
+      },
+    },
+
     -- sample processing
     vb:column {
       style = "panel",
@@ -194,42 +252,30 @@ function show_menu()
       vb:space {
         height = UNIT/3
       },
+
       vb:horizontal_aligner {
         spacing = UNIT,
         margin = DEFAULT_MARGIN,
-        mode = "center",
-        
+
         vb:row {
           spacing = UNIT/3,
           
-          vb:text {
-            text = "Process in background"
-          },
           vb:checkbox{
             value = OPTIONS.background, 
             notifier = function(x) OPTIONS.background = x end,
             tooltip = "If checked, process the samples a little bit slower in order to make Renoise more usable while the processing is done."
-          }
-        },
-        vb:row {
-          spacing = UNIT,
-          style = "group",
-          
-          vb:text {
-            text = "Status:"
           },
+
           vb:text {
-            text = "Waiting",
-            width = 6*UNIT,
-            id = "processing_status_text"
-          }
+            text = "Process in background"
+          },
         }
       },
       
       vb:horizontal_aligner {
         spacing = UNIT,
         margin = DEFAULT_MARGIN,
-        mode = "center",
+        mode = "left",
         
         vb:button {
           text = "Normalize Sample Volumes",
@@ -242,22 +288,27 @@ function show_menu()
           tooltip = "Remove any silence at the beginning of all samples."
         }
       },
-      
-      -- name
+
       vb:horizontal_aligner {
+        spacing = UNIT,
         margin = DEFAULT_MARGIN,
-    
-        vb:text {
-          text = "Instrument name ",
-          width = "25%"
-        },
-        vb:textfield {
-          value = OPTIONS.name,
-          notifier =  function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end,
-          width = "75%",
-          tooltip = "Instrument name to set when sampling is over."
+        width = "100%",
+
+        vb:row {
+          spacing = UNIT,
+          style = "group",
+          width = "100%",
+
+          vb:text {
+            text = "Status:"
+          },
+          vb:text {
+            text = "Waiting",
+            width = "90%",
+            id = "processing_status_text"
+          }
         }
-      }
+      },
     }
   }
 

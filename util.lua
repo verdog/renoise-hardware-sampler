@@ -28,3 +28,6 @@ function note_to_name(note)
   return keys[key] .. tostring(octave)
 end
 
+function upcase(word)
+  return string.gsub(" "..word, "%W%l", string.upper):sub(2)
+end
