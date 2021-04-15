@@ -29,27 +29,71 @@ function value_box(_text, _tip, _value, _min, _max, _steps, _notif, _tostring, _
   }
 end
 
-function note_matrix()
+-- generic button matrix. Use this to create specific button matricies
+function button_matrix(buttons, name, options, tooltip, callback)
   local row = vb:horizontal_aligner {
     margin = DEFAULT_MARGIN,
     mode = "distribute",
     spacing = 1
   }
-  local notes = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-  
-  for note = 1,12 do
+
+  -- callback is the is the callback the notifier should run
+  local notifier = function(button, name, callback)
+    -- do GUI work
+    toggle_button(button, name)
+
+    -- run callback
+    if callback then
+      print("Running callback for button matrix:", name)
+      callback()
+    end
+  end
+
+  for button = 0,#buttons do
     local button = vb:button {
-      id = "note_button_"..tostring(note-1),
-      text = notes[note],
+      id = name.."_button_"..tostring(button),
+      text = buttons[button],
       width = UNIT*1.5,
       height = UNIT*1.5,
-      color = OPTIONS.notes[note-1] and C_PRESSED or C_NOT_PRESSED,
-      notifier = function() toggle_note(note - 1) end,
-      tooltip = "Select notes that will be sampled in each octave."
+      color = options[button] and C_PRESSED or C_NOT_PRESSED,
+      notifier = function(x) notifier(button, name, callback) end,
+      tooltip = tooltip
     }
     row:add_child(button)
   end
+
   return row
+end
+
+function toggle_post_record_normalize_and_trim_state(state)
+  OPTIONS.post_record_normalize_and_trim = state
+
+  if OPTIONS.background then
+    OPTIONS.background = not state
+    vb.views.background_cb.value = not state
+  end
+end
+
+function toggle_background_processing_state(state)
+  OPTIONS.background = state
+
+  if OPTIONS.post_record_normalize_and_trim then
+    OPTIONS.post_record_normalize_and_trim = not state
+    vb.views.post_record_normalize_cb.value = not state
+  end
+end
+
+function note_matrix()
+  local tooltip = "Select notes that will be sampled in each octave."
+
+  return button_matrix(NOTES, "notes", OPTIONS.notes, tooltip)
+end
+
+function tag_matrix()
+  local tooltip = "Select tags to include in instrument name"
+  local callback = function () update_instrument_name() end
+  
+  return button_matrix(TAGS, "tags", OPTIONS.tags, tooltip, callback)
 end
 
 function midi_list()
@@ -118,7 +162,7 @@ function show_menu()
         vb:textfield {
           id = "instrument_name_textfield",
           value = OPTIONS.name,
-          notifier =  function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end,
+          notifier = function() update_instrument_name() end,
           width = "50%",
           tooltip = "Instrument name to set when sampling is over."
         },
@@ -128,9 +172,36 @@ function show_menu()
           width = "25%",
           tooltip = "Generate a random instrument name"
         }
-      }
+      },
+
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+        
+        vb:text {
+          text = "Hardware name ",
+          width = "25%"
+        },
+        vb:textfield {
+          id = "hardware_name_textfield",
+          value = OPTIONS.hardware_name,
+          notifier =  function(x) update_instrument_name() end,
+          width = "50%",
+          tooltip = "Append the hardware device's name to further identify."
+        }
+      },
+
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+        vb:text {
+          text = "Tags:",
+          width = "25%"
+        }
+      },
+      
+      -- produces the tag buttons
+      tag_matrix()
     },
-    
+
     -- midi options
     vb:column {
       style = "panel",
@@ -227,8 +298,9 @@ function show_menu()
         spacing = UNIT/3,
 
         vb:checkbox {
+          id = "post_record_normalize_cb",
+          notifier = function(x) toggle_post_record_normalize_and_trim_state(x) end,
           value = OPTIONS.post_record_normalize_and_trim,
-          notifier = function(x) OPTIONS.post_record_normalize = x end,
           tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
         },
 
@@ -261,8 +333,9 @@ function show_menu()
           spacing = UNIT/3,
           
           vb:checkbox{
-            value = OPTIONS.background, 
-            notifier = function(x) OPTIONS.background = x end,
+            id = "background_cb",
+            notifier = function(x) toggle_background_processing_state(x) end,
+            value = OPTIONS.background,
             tooltip = "If checked, process the samples a little bit slower in order to make Renoise more usable while the processing is done."
           },
 

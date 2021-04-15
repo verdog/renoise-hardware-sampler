@@ -43,6 +43,30 @@ function coroutine_status(s, nowheel)
   WHEELI = (WHEELI + 1) % table.getn(wheel)
 end
 
+function update_instrument_name()
+  local instrument = vb.views.instrument_name_textfield.text
+  local hardware = vb.views.hardware_name_textfield.text
+  local complete_name = hardware
+
+  for i = 0,#TAGS do
+    if OPTIONS.tags[i] then
+      if complete_name == "" or complete_name == nil then
+        complete_name = TAGS[i]
+      else
+        complete_name = complete_name.."_"..TAGS[i]
+      end
+    end
+  end
+  
+  if complete_name == "" or complete_name == nil then
+    complete_name = instrument
+  else
+    complete_name = complete_name.."-"..instrument
+  end
+
+  renoise.song().selected_instrument.name = complete_name
+end
+
 -- generate random instrument names
 function autoname()
   -- the random words list
@@ -58,9 +82,10 @@ function autoname()
   -- assemble the instrumnt name
   local name = string.gsub("$adj $noun", "%$(%w+)", t)
 
-  -- update GUI and settings
-  renoise.song().selected_instrument.name = name
+  -- update GUI
   vb.views.instrument_name_textfield.text = name
+
+  update_instrument_name()
 end
 
 -- boost each sample's volume an equal amount ---------------------------------

@@ -7,8 +7,10 @@ OPTIONS = {
   high = 6,
   length = 2,
   release = .2,
-  notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
+  tags = {[0]=false, false, false, false, false, false, false, false},
+  notes = {[0]=true, false, false, false, true, false, false, true, false, false, false, false},
   name = "Recorded Hardware",
+  hardware_name = "",
   background = false,
   post_record_normalize_and_trim = false,
   mapping = 2,
@@ -16,8 +18,9 @@ OPTIONS = {
   layers = 1
 }
 
--- note button colors
-C_PRESSED = {100, 100, 100}
+TAGS = {[0]="Bass", "Drum", "FX", "Keys", "Lead", "Pad", "Strings",  "Vocal"}
+NOTES = {[0]="C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+
 -- note/tag button colors
 C_PRESSED = {100, 200, 100}
 C_NOT_PRESSED = {20, 20, 20}
@@ -57,16 +60,16 @@ function reset_state()
   end
 end
 
--- toggle a note to record on or off in the gui
-function toggle_note(note)
-  print("toggling note "..tostring(note))
+-- toggles the on/off state of a button
+function toggle_button(button, ttype)
+  print("toggling ", tostring(ttype), tostring(button))
 
-  -- set data
-  OPTIONS.notes[note] = not OPTIONS.notes[note]
+  -- set data to 
+  OPTIONS[ttype][button] = not OPTIONS[ttype][button]
 
   -- set visual
-  vb.views["note_button_"..tostring(note)].color = 
-    OPTIONS.notes[note] and C_PRESSED or C_NOT_PRESSED
+  vb.views[tostring(ttype).."_button_"..tostring(button)].color = 
+    OPTIONS[ttype][button] and C_PRESSED or C_NOT_PRESSED
 end
 
 -- generate list of midi notes to send to the controller
@@ -244,7 +247,7 @@ function finish()
   local lunit = 128/STATE.layers
 
   -- name instrument
-  inst.name = OPTIONS.name
+  update_instrument_name()
 
   -- name samples
   for i=1,table.count(STATE.notes) do
@@ -272,16 +275,23 @@ end
 
 -- normalize and trim the samples
 function post_record_normalize_and_trim()
-  update_status("Normalizing samples...")
-  if not pcall(normalize) then
-    update_status("Normalizing samples failed")
-    return
-  end
+  -- ensure background processing is not enabled.
+  -- if background processing is enabled a few bad things could happen:
+  -- normalizing gets skipped or there's a race condition that goes un-noticed
+  -- while the sound data is being treated. 
+  local tmp_background = OPTIONS.background
+  OPTIONS.background = false
 
   update_status("Normalizing samples...")
-  if not pcall(trim) then
-    update_status("Trimming samples failed")
-  end
+  normalize()
+
+  update_status("Trimming samples...")
+  trim()
+
+  update_status("All samples normalized and trimmed.")
+
+  -- put the background setting back to what it was
+  OPTIONS.background = tmp_background
 end
 
 -- kill switch
