@@ -18,6 +18,8 @@ OPTIONS = {
 
 -- note button colors
 C_PRESSED = {100, 100, 100}
+-- note/tag button colors
+C_PRESSED = {100, 200, 100}
 C_NOT_PRESSED = {20, 20, 20}
 
 -- state
