@@ -14,7 +14,6 @@ OPTIONS = {
   background = false,
   post_record_normalize_and_trim = false,
   mapping = 2,
-  mapping = 2,
   layers = 1
 }
 
