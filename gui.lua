@@ -190,7 +190,7 @@ function show_menu()
       margin = DEFAULT_MARGIN,
       
       vb:text {
-        text = "Midi and note options",
+        text = "MIDI and Note Options",
         align = "center",
         width = "100%"
       },
@@ -218,7 +218,6 @@ function show_menu()
       vb:horizontal_aligner {
         margin = DEFAULT_MARGIN,
         spacing = DEFAULT_MARGIN,
-        
         
         vb:text {
           text = "Mapping style:"
@@ -299,7 +298,7 @@ function show_menu()
       margin = DEFAULT_MARGIN,
     
       vb:text {
-        text = "Post processing",
+        text = "Post Processing",
         align = "center",
         width = "100%"
       },
