@@ -360,10 +360,16 @@ function stop_note()
     STATE.notei = STATE.notei + 1
   end
 
+  -- Some users noticed/reported that samples were not being recorded.
+  -- Adding a 300ms delay before calling the next function helps ensure
+  -- renoise has enough time to handle all of the Lua interface API requests
+  -- and not miss or skip one for whatever timing related reason. In my testing, 
+  -- the timing issue was present on Linux but not Windows so it could 
+  -- have something to do with build architecture.
   if STATE.notes[STATE.notei] ~= nil then
-    call_in(prep_note, 50)
+    call_in(prep_note, 300)
   else
-    call_in(finish, 50)
+    call_in(finish, 300)
   end
 end
 
