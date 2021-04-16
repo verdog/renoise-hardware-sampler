@@ -27,14 +27,16 @@ C_NOT_PRESSED = {20, 20, 20}
 
 -- state
 STATE = {
-  midi_device = nil,    -- current midi device name
-  dev = nil,            -- current midi device object
-  recording = false,    -- are we actively recording
-  notes = nil,          -- list of notes to send to the midi device
-  notei = nil,          -- current index in note list
-  layers = nil,         -- number of velocity layers for each note
-  layeri = nil,         -- current layer
-  total = nil           -- total amount of notes that will be sampled
+  midi_device = nil, -- current midi device name
+  dev = nil,         -- current midi device object
+  recording = false, -- are we actively recording
+  notes = nil,       -- list of notes to send to the midi device
+  notei = nil,       -- current index in note list
+  layers = nil,      -- number of velocity layers for each note
+  layeri = nil,      -- current layer
+  total = nil,       -- total amount of notes that will be sampled
+  inst = nil,        -- instrument to which samples will be saved
+  inst_index = nil   -- instrument index
 }
 
 -- reset state to be ready to record
@@ -46,6 +48,8 @@ function reset_state()
   STATE.layers = nil
   STATE.layeri = nil
   STATE.total = nil
+  STATE.inst = nil
+  STATE.inst_index = nil
   
   TOCALL = nil -- from util.lua
   KILL = false -- from util.lua
@@ -124,11 +128,13 @@ function go()
   STATE.layers = OPTIONS.layers
   STATE.layeri = 1
   STATE.total = table.count(STATE.notes) * STATE.layers
+  STATE.inst = renoise.song().selected_instrument
+  STATE.inst_index = renoise.song().selected_instrument_index
   
   print("Going to create "..tostring(STATE.total).." samples.")
 
   -- get inst
-  local inst = renoise.song().selected_instrument
+  local inst = STATE.inst
 
   -- clear samples
   while table.count(inst.samples) > 0 do
@@ -220,7 +226,7 @@ function get_mapping_dict()
 end
 
 function do_mapping(mapping_dict)
-  local inst = renoise.song().selected_instrument
+  local inst = STATE.inst
   
   for i=1,table.count(STATE.notes) do
     for l=1,STATE.layers do
@@ -242,7 +248,7 @@ end
 -- apply finishing touches
 function finish()
   update_status("Finishing...")
-  local inst = renoise.song().selected_instrument
+  local inst = STATE.inst
 
   local lunit = 128/STATE.layers
 
@@ -315,6 +321,16 @@ end
 -- get ready to play a note
 -- recording starts here
 function prep_note()
+  -- check that "new instrument on each take" is not selected by comparing the
+  --   currently selected instrument index to the one we had when we started.
+  if renoise.song().selected_instrument_index ~= STATE.inst_index then
+    renoise.app():show_prompt("Oops!", "A different instrument became selected. The same instrument must remain selected throughout the process. Make sure the \"Create new instrument on each take\" option is NOT checked in the Renoise recording settings dialog.", {"OK"})
+    stop()
+    renoise.song().selected_instrument_index = STATE.inst_index
+    renoise.app().window.sample_record_dialog_is_visible = true
+    return
+  end
+
   local idx = (STATE.notei-1)*STATE.layers + (STATE.layeri-1) + 1
   print("Prepping note "..tostring(idx).."...")
   renoise.song().selected_sample_index = idx
