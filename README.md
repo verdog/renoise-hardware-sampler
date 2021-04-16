@@ -95,6 +95,10 @@ The amount of time in seconds that the recorded note will be held down.
 
 The amount of time to wait, after releasing the note, to stop recording the sample.
 
+##### Between Time
+
+Time between the end of each sample recording and the start of the next one. Increase this if you find that not every sample gets stored into its slot in time because Renoise is still processing the recorded sample when the next sample recording starts.
+
 #### Post processing
 
 These are post-processing options. Click these buttons after the recording process is finished. It is also possible to use these on samples recorded via other means than this tool -- the buttons simply process all current samples.

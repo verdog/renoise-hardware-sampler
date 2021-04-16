@@ -114,7 +114,7 @@ function show_menu()
 
   local content = vb:column {
     margin = DEFAULT_MARGIN*2,
-    width = UNIT*20,
+    width = UNIT*24,
     spacing = UNIT/2,
     
     -- instrument naming
@@ -241,7 +241,8 @@ function show_menu()
         spacing = DEFAULT_MARGIN,
   
         value_box("Hold time", "How long the note on signal will be held.", OPTIONS.length, 0.1, 60, {0.1, 1}, function(x) OPTIONS.length = x end, function(x) return tostring(x).." s." end, tonumber),
-        value_box("Release time", "How long the tool will wait for the note to release after note off.", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber)
+        value_box("Release time", "How long the tool will wait for the note to release after note off.", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber),
+        value_box("Between time", "Time between the end of each sample recording and the start of the next one. Increase this if you find that not every sample gets stored into its slot in time because Renoise is still processing the recorded sample when the next sample recording starts.", OPTIONS.between_time, 10, 1000, {10, 100}, function (x) OPTIONS.between_time = x end, function(x) return tostring(x).." ms." end, tonumber)
       }
     },
       
