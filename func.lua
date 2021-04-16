@@ -268,29 +268,25 @@ function finish()
 
   -- normalize samples if enabled
   if OPTIONS.post_record_normalize_and_trim then
-    post_record_normalize_and_trim()
+    normalize_and_trim()
   end
 end
 
--- normalize and trim the samples
-function post_record_normalize_and_trim()
-  -- ensure background processing is not enabled.
-  -- if background processing is enabled a few bad things could happen:
-  -- normalizing gets skipped or there's a race condition that goes un-noticed
-  -- while the sound data is being treated. 
-  local tmp_background = OPTIONS.background
-  OPTIONS.background = false
-
+function normalize_and_trim_coroutine()
+  -- call processing coroutines serially
   update_status("Normalizing samples...")
-  normalize()
+  normalize_coroutine()
 
   update_status("Trimming samples...")
-  trim()
+  trim_coroutine()
 
   update_status("All samples normalized and trimmed.")
+end
 
-  -- put the background setting back to what it was
-  OPTIONS.background = tmp_background
+-- normalize and trim the samples
+function normalize_and_trim()
+  prep_processing(normalize_and_trim_coroutine)
+  SAMPLE_PROCESSING_PROCESS:start()
 end
 
 -- kill switch

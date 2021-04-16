@@ -65,24 +65,6 @@ function button_matrix(buttons, name, options, tooltip, callback)
   return row
 end
 
-function toggle_post_record_normalize_and_trim_state(state)
-  OPTIONS.post_record_normalize_and_trim = state
-
-  if OPTIONS.background then
-    OPTIONS.background = not state
-    vb.views.background_cb.value = not state
-  end
-end
-
-function toggle_background_processing_state(state)
-  OPTIONS.background = state
-
-  if OPTIONS.post_record_normalize_and_trim then
-    OPTIONS.post_record_normalize_and_trim = not state
-    vb.views.post_record_normalize_cb.value = not state
-  end
-end
-
 function note_matrix()
   local tooltip = "Select notes that will be sampled in each octave."
 
@@ -298,9 +280,8 @@ function show_menu()
         spacing = UNIT/3,
 
         vb:checkbox {
-          id = "post_record_normalize_cb",
-          notifier = function(x) toggle_post_record_normalize_and_trim_state(x) end,
           value = OPTIONS.post_record_normalize_and_trim,
+          notifier = function(x) OPTIONS.post_record_normalize_and_trim = x end,
           tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
         },
 
@@ -333,9 +314,8 @@ function show_menu()
           spacing = UNIT/3,
           
           vb:checkbox{
-            id = "background_cb",
-            notifier = function(x) toggle_background_processing_state(x) end,
             value = OPTIONS.background,
+            notifier = function(x) OPTIONS.background = x end,
             tooltip = "If checked, process the samples a little bit slower in order to make Renoise more usable while the processing is done."
           },
 
