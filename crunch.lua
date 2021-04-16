@@ -79,7 +79,7 @@ function autoname()
     noun = upcase(nouns[math.random(#nouns)])
   }
   
-  -- assemble the instrumnt name
+  -- assemble the instrument name
   local name = string.gsub("$adj $noun", "%$(%w+)", t)
 
   -- update GUI
