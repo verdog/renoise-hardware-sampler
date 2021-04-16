@@ -3,7 +3,7 @@
   <ApiVersion>6.1</ApiVersion>
   <Id>hack.dpp.hwsampler</Id>
   <Version>1.4</Version>
-  <Author>dogsplusplus [@dogsplusplus]</Author>
+  <Author>dogsplusplus [@dogsplusplus], Jugwine [@jugwine1]</Author>
   <Name>Midi Hardware Sampler Helper</Name>
   <Category>Hardware</Category>
   <Description>Automate the process of collecting, mapping, and tweaking samples from a hardware synthesizer connected via MIDI.</Description>
