@@ -8,7 +8,7 @@ OPTIONS = {
   length = 2,
   release = .2,
   tags = {[0]=false, false, false, false, false, false, false, false},
-  notes = {[0]=true, false, false, false, true, false, false, true, false, false, false, false},
+  notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
   name = "Recorded Hardware",
   hardware_name = "",
   background = false,
