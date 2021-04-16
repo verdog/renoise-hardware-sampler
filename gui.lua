@@ -29,27 +29,53 @@ function value_box(_text, _tip, _value, _min, _max, _steps, _notif, _tostring, _
   }
 end
 
-function note_matrix()
+-- generic button matrix. Use this to create specific button matricies
+function button_matrix(buttons, name, options, tooltip, callback)
   local row = vb:horizontal_aligner {
     margin = DEFAULT_MARGIN,
     mode = "distribute",
     spacing = 1
   }
-  local notes = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-  
-  for note = 1,12 do
+
+  -- callback is the is the callback the notifier should run
+  local notifier = function(button, name, callback)
+    -- do GUI work
+    toggle_button(button, name)
+
+    -- run callback
+    if callback then
+      print("Running callback for button matrix:", name)
+      callback()
+    end
+  end
+
+  for button = 0,#buttons do
     local button = vb:button {
-      id = "note_button_"..tostring(note-1),
-      text = notes[note],
+      id = name.."_button_"..tostring(button),
+      text = buttons[button],
       width = UNIT*1.5,
       height = UNIT*1.5,
-      color = OPTIONS.notes[note-1] and C_PRESSED or C_NOT_PRESSED,
-      notifier = function() toggle_note(note - 1) end,
-      tooltip = "Select notes that will be sampled in each octave."
+      color = options[button] and C_PRESSED or C_NOT_PRESSED,
+      notifier = function(x) notifier(button, name, callback) end,
+      tooltip = tooltip
     }
     row:add_child(button)
   end
+
   return row
+end
+
+function note_matrix()
+  local tooltip = "Select notes that will be sampled in each octave."
+
+  return button_matrix(NOTES, "notes", OPTIONS.notes, tooltip)
+end
+
+function tag_matrix()
+  local tooltip = "Select tags to include in instrument name"
+  local callback = function () update_instrument_name() end
+  
+  return button_matrix(TAGS, "tags", OPTIONS.tags, tooltip, callback)
 end
 
 function midi_list()
@@ -91,34 +117,73 @@ function show_menu()
     width = UNIT*20,
     spacing = UNIT/2,
     
-    -- big buttons
-    vb:horizontal_aligner {
-      mode = "center",
+    -- instrument naming
+    vb:column {
+      style = "panel",
+      margin = DEFAULT_MARGIN,
       width = "100%",
 
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Start",
-        notifier = go,
-        tooltip = "Start the recording process."
+      vb:text {
+        text = "Name",
+        align = "center",
+        width = "100%"
       },
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Stop",
-        notifier = stop,
-        tooltip = "Stop the recording process."
+
+      vb:space {
+        height = UNIT/3
       },
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Recording Settings",
-        notifier = configure,
-        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
-      }
-    },
+      
+      -- name
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
     
+        vb:text {
+          text = "Instrument name ",
+          width = "25%"
+        },
+        vb:textfield {
+          id = "instrument_name_textfield",
+          value = OPTIONS.name,
+          notifier = function() update_instrument_name() end,
+          width = "50%",
+          tooltip = "Instrument name to set when sampling is over."
+        },
+        vb:button {
+          text = "Auto-Name",
+          notifier = autoname,
+          width = "25%",
+          tooltip = "Generate a random instrument name"
+        }
+      },
+
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+        
+        vb:text {
+          text = "Hardware name ",
+          width = "25%"
+        },
+        vb:textfield {
+          id = "hardware_name_textfield",
+          value = OPTIONS.hardware_name,
+          notifier =  function(x) update_instrument_name() end,
+          width = "50%",
+          tooltip = "Append the hardware device's name to further identify."
+        }
+      },
+
+      vb:horizontal_aligner {
+        margin = DEFAULT_MARGIN,
+        vb:text {
+          text = "Tags:",
+          width = "25%"
+        }
+      },
+      
+      -- produces the tag buttons
+      tag_matrix()
+    },
+
     -- midi options
     vb:column {
       style = "panel",
@@ -180,6 +245,52 @@ function show_menu()
       }
     },
       
+    -- big buttons
+    vb:horizontal_aligner {
+      mode = "center",
+      width = "100%",
+
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Start",
+        notifier = go,
+        tooltip = "Start the recording process."
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Stop",
+        notifier = stop,
+        tooltip = "Stop the recording process."
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Recording Settings",
+        notifier = configure,
+        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
+      }
+    },
+    vb:horizontal_aligner {
+      spacing = UNIT,
+      margin = DEFAULT_MARGIN,
+
+      vb:row {
+        spacing = UNIT/3,
+
+        vb:checkbox {
+          value = OPTIONS.post_record_normalize_and_trim,
+          notifier = function(x) OPTIONS.post_record_normalize_and_trim = x end,
+          tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
+        },
+
+        vb:text {
+          text = "Normalize and Trim samples after recording"
+        }
+      },
+    },
+
     -- sample processing
     vb:column {
       style = "panel",
@@ -194,42 +305,30 @@ function show_menu()
       vb:space {
         height = UNIT/3
       },
+
       vb:horizontal_aligner {
         spacing = UNIT,
         margin = DEFAULT_MARGIN,
-        mode = "center",
-        
+
         vb:row {
           spacing = UNIT/3,
           
+          vb:checkbox{
+            value = OPTIONS.background,
+            notifier = function(x) OPTIONS.background = x end,
+            tooltip = "If checked, process the samples a little bit slower in order to make Renoise more usable while the processing is done."
+          },
+
           vb:text {
             text = "Process in background"
           },
-          vb:checkbox{
-            value = OPTIONS.background, 
-            notifier = function(x) OPTIONS.background = x end,
-            tooltip = "If checked, process the samples a little bit slower in order to make Renoise more usable while the processing is done."
-          }
-        },
-        vb:row {
-          spacing = UNIT,
-          style = "group",
-          
-          vb:text {
-            text = "Status:"
-          },
-          vb:text {
-            text = "Waiting",
-            width = 6*UNIT,
-            id = "processing_status_text"
-          }
         }
       },
       
       vb:horizontal_aligner {
         spacing = UNIT,
         margin = DEFAULT_MARGIN,
-        mode = "center",
+        mode = "left",
         
         vb:button {
           text = "Normalize Sample Volumes",
@@ -242,22 +341,27 @@ function show_menu()
           tooltip = "Remove any silence at the beginning of all samples."
         }
       },
-      
-      -- name
+
       vb:horizontal_aligner {
+        spacing = UNIT,
         margin = DEFAULT_MARGIN,
-    
-        vb:text {
-          text = "Instrument name ",
-          width = "25%"
-        },
-        vb:textfield {
-          value = OPTIONS.name,
-          notifier =  function(x) OPTIONS.name = x renoise.song().selected_instrument.name = OPTIONS.name end,
-          width = "75%",
-          tooltip = "Instrument name to set when sampling is over."
+        width = "100%",
+
+        vb:row {
+          spacing = UNIT,
+          style = "group",
+          width = "100%",
+
+          vb:text {
+            text = "Status:"
+          },
+          vb:text {
+            text = "Waiting",
+            width = "90%",
+            id = "processing_status_text"
+          }
         }
-      }
+      },
     }
   }
 

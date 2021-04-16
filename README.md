@@ -43,6 +43,8 @@ Opens the Renoise sample recording window. **You must change the settings in thi
 
 This is a good time to make sure that Renoise can hear your hardware. Play a note and the indicator at the top of the sample recorder window should react to the audio.
 
+*Note* make sure the "Create a new Instrument on each take" option in the Sample Recorder window is unchecked.
+
 #### Midi and note options
 
 In this section you configure your midi device and decide which notes to actually sample.
@@ -111,9 +113,45 @@ Boost sample volume as much as possible, while maintaining the current relative 
 
 For each sample, remove any leading silence.
 
-#### Instrument Name
+#### Instrument Naming
 
-Sets the instrument name after samples are recorded.
+There are a few ways to construct an instrument's name. At a minimum, only the Instrument Name field is required. If using the Hardware Name and Tag options, the following naming pattern will be applied:
+
+`HardwareName_Tags-Instrument Name`
+
+For example:
+
+```
+MicroKorg_Pad-Fancy Darkness
+```
+
+Multiple tags can be included and will be applied in alphabetical order.
+
+Tags can still be used even if a Hardware Name is not provided. The name format applied will be:
+
+`Tag-Instrument Name`
+
+For example:
+
+```
+Pad-Fancy Darkness
+```
+
+##### Instrument Name
+
+This is the primary name of the instrument and is the only required name element.
+
+##### Auto-Name button
+
+The Auto-Name button generates a random instrument name. This is useful for when you've run out of naming ideas ;)
+
+##### Hardware Name
+
+An optional field that can help identify the hardware source of the sampled instrument.
+
+##### Tag Matrix
+
+Optional tags may be applied to assist in identifying the type of sound the instrument makes. More than one tag can be used at a time.
 
 ## Issues and Pull Requests
 

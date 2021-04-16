@@ -7,15 +7,21 @@ OPTIONS = {
   high = 6,
   length = 2,
   release = .2,
+  tags = {[0]=false, false, false, false, false, false, false, false},
   notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
   name = "Recorded Hardware",
+  hardware_name = "",
   background = false,
+  post_record_normalize_and_trim = false,
   mapping = 2,
   layers = 1
 }
 
--- note button colors
-C_PRESSED = {100, 100, 100}
+TAGS = {[0]="Bass", "Drum", "FX", "Keys", "Lead", "Pad", "Strings",  "Vocal"}
+NOTES = {[0]="C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+
+-- note/tag button colors
+C_PRESSED = {100, 200, 100}
 C_NOT_PRESSED = {20, 20, 20}
 
 -- state
@@ -53,16 +59,16 @@ function reset_state()
   end
 end
 
--- toggle a note to record on or off in the gui
-function toggle_note(note)
-  print("toggling note "..tostring(note))
+-- toggles the on/off state of a button
+function toggle_button(button, ttype)
+  print("toggling ", tostring(ttype), tostring(button))
 
-  -- set data
-  OPTIONS.notes[note] = not OPTIONS.notes[note]
+  -- set data to 
+  OPTIONS[ttype][button] = not OPTIONS[ttype][button]
 
   -- set visual
-  vb.views["note_button_"..tostring(note)].color = 
-    OPTIONS.notes[note] and C_PRESSED or C_NOT_PRESSED
+  vb.views[tostring(ttype).."_button_"..tostring(button)].color = 
+    OPTIONS[ttype][button] and C_PRESSED or C_NOT_PRESSED
 end
 
 -- generate list of midi notes to send to the controller
@@ -240,7 +246,7 @@ function finish()
   local lunit = 128/STATE.layers
 
   -- name instrument
-  inst.name = OPTIONS.name
+  update_instrument_name()
 
   -- name samples
   for i=1,table.count(STATE.notes) do
@@ -259,6 +265,28 @@ function finish()
 
   -- close midi
   STATE.dev:close()
+
+  -- normalize samples if enabled
+  if OPTIONS.post_record_normalize_and_trim then
+    normalize_and_trim()
+  end
+end
+
+function normalize_and_trim_coroutine()
+  -- call processing coroutines serially
+  update_status("Normalizing samples...")
+  normalize_coroutine()
+
+  update_status("Trimming samples...")
+  trim_coroutine()
+
+  update_status("All samples normalized and trimmed.")
+end
+
+-- normalize and trim the samples
+function normalize_and_trim()
+  prep_processing(normalize_and_trim_coroutine)
+  SAMPLE_PROCESSING_PROCESS:start()
 end
 
 -- kill switch
@@ -328,10 +356,16 @@ function stop_note()
     STATE.notei = STATE.notei + 1
   end
 
+  -- Some users noticed/reported that samples were not being recorded.
+  -- Adding a 300ms delay before calling the next function helps ensure
+  -- renoise has enough time to handle all of the Lua interface API requests
+  -- and not miss or skip one for whatever timing related reason. In my testing, 
+  -- the timing issue was present on Linux but not Windows so it could 
+  -- have something to do with build architecture.
   if STATE.notes[STATE.notei] ~= nil then
-    call_in(prep_note, 50)
+    call_in(prep_note, 300)
   else
-    call_in(finish, 50)
+    call_in(finish, 300)
   end
 end
 
