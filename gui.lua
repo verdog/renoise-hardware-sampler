@@ -166,7 +166,7 @@ function show_menu()
         vb:textfield {
           id = "hardware_name_textfield",
           value = OPTIONS.hardware_name,
-          notifier =  function(x) update_instrument_name() end,
+          notifier =  function() update_instrument_name() end,
           width = "50%",
           tooltip = "Append the hardware device's name to further identify."
         }
@@ -273,9 +273,6 @@ function show_menu()
       }
     },
     vb:horizontal_aligner {
-      spacing = UNIT,
-      margin = DEFAULT_MARGIN,
-
       vb:row {
         spacing = UNIT/3,
 
@@ -290,6 +287,23 @@ function show_menu()
         }
       },
     },
+
+    vb:horizontal_aligner {
+      vb:row {
+        spacing = UNIT/3,
+
+        vb:checkbox {
+          value = OPTIONS.add_adsr,
+          notifier = function(x) toggle_adsr(x) end,
+          tooltip = "If checked, an ADSR effect will be added to the instrument. If Pad or String tags are selected, the envelope's release time will be slightly longer by default."
+        },
+
+        vb:text {
+          text = "Insert ADSR"
+        }
+      },
+    },
+    
 
     -- sample processing
     vb:column {

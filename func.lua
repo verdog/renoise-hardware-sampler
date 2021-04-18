@@ -13,6 +13,7 @@ OPTIONS = {
   hardware_name = "",
   background = false,
   post_record_normalize_and_trim = false,
+  add_adsr = false,
   mapping = 2,
   layers = 1,
   between_time = 100
@@ -74,6 +75,90 @@ function toggle_button(button, ttype)
   -- set visual
   vb.views[tostring(ttype).."_button_"..tostring(button)].color = 
     OPTIONS[ttype][button] and C_PRESSED or C_NOT_PRESSED
+end
+
+-- adds/removes the ADSR module from the instrument
+function toggle_adsr(state)
+  OPTIONS.add_adsr = state
+
+  if state then
+    insert_adsr()
+  else
+    delete_adsr()
+  end
+end
+
+-- this function wraps adding modulatation devices to the current instrument
+-- thanks to Raul (ulneiz) for providing this
+-- https://forum.renoise.com/t/add-an-adsr-and-manipulate-its-settings-to-an-instrument/63826/7
+
+-- Device ids (idx)
+-- 1 - Modulation/Operand
+-- 2 - Modulation/Key Tracking
+-- 3 - Modulation/Velocity Tracking
+-- 4 - Modulation/AHDSR
+-- 5 - Modulation/Envelope
+-- 6 - Modulation/Stepper
+-- 7 - Modulation/LFO
+-- 8 - Modulation/Fader
+function insert_modulation_device(idx,target_idx,device_idx)
+  local device = nil
+  local mod_set=renoise.song().selected_sample_modulation_set
+
+  if mod_set then
+    -- oprint(mod_set.available_devices[idx])
+    local device_path=mod_set.available_devices[idx]
+    device = mod_set:insert_device_at(device_path,target_idx,device_idx)
+  end
+
+  return device
+end
+
+-- remove modulation device at index
+function delete_modulation_device(idx)
+  local mod_set=renoise.song().selected_sample_modulation_set
+
+  if mod_set then
+    mod_set:delete_device_at(idx)
+  end
+end
+
+-- insert ADSR envelope as first modulation device
+function insert_adsr()
+  local device = insert_modulation_device(4, 1, 1)
+
+  -- param ids:
+  -- 1 Attack
+  -- 2 Hold
+  -- 3 Decay
+  -- 4 Sustain
+  -- 5 Release
+  -- 6 Attack Scaling
+  -- 7 Decay Scaling
+  -- 8 Release Scaling
+
+  if device then
+    -- set attack (id 1) to 0
+    device.parameters[1].value = 0
+
+    -- extend Release if instrument is tagged with Pad or Strings
+    if OPTIONS.tags[5] or OPTIONS.tags[6] then
+      device.parameters[5].value = 0.4
+    end
+  else
+    print("insert_adsr() failed. device was nil")
+  end
+end
+
+-- remove the first modulation if it's an AHDSR
+function delete_adsr()
+  local mod_set=renoise.song().selected_sample_modulation_set
+
+  if mod_set and mod_set.devices[1].name == "Volume AHDSR" then
+    mod_set:delete_device_at(1)
+  else
+    print("Device 1 is not an AHDSR")
+  end
 end
 
 -- generate list of midi notes to send to the controller
