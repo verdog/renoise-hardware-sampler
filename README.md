@@ -25,17 +25,7 @@ The general idea of this tool is to automate the process of recording played not
 
 To use the tool, right click on the waveform editor and choose "Record Samples from MIDI Hardware".
 
-The buttons have the following functions:
-
-#### Start, Stop, Recording Settings
-
-##### Start
-
-Starts the recording process.
-
-##### Stop
-
-Stops the recording process.
+### Tool Configuration and Features
 
 ##### Recording Settings
 
@@ -43,7 +33,7 @@ Opens the Renoise sample recording window. **You must change the settings in thi
 
 This is a good time to make sure that Renoise can hear your hardware. Play a note and the indicator at the top of the sample recorder window should react to the audio.
 
-*Note* make sure the "Create a new Instrument on each take" option in the Sample Recorder window is unchecked.
+**Note* make sure the "Create a new Instrument on each take" option in the Sample Recorder window is unchecked.
 
 #### Midi and note options
 
@@ -98,6 +88,26 @@ The amount of time to wait, after releasing the note, to stop recording the samp
 ##### Between Time
 
 Time between the end of each sample recording and the start of the next one. Increase this if you find that not every sample gets stored into its slot in time because Renoise is still processing the recorded sample when the next sample recording starts.
+
+#### Start, Stop, Recording Settings
+
+##### Start
+
+Starts the recording process.
+
+##### Stop
+
+Stops the recording process.
+
+#### Normalize and Trim samples after recordings
+
+When this is enabled, normalization and trimming of the samples will take place imediately after the sample recording job has finished. The "Process in background" feature will apply here as well.
+
+#### Insert ADSR
+
+When enabled, a "Volume AHDSR" envelope will be inserted into the **first** slot of the instrument's Modulation settings. When toggled off, the module will be removed but only if it's in the **first** slot of the instrument's Modulation settings.
+
+**Note**, if the "Pad" or "Strings" tags are selected, the Release time of the envelope will be set to around 4 seconds. If any tags, including none, are selected, the default 1 second Release time will be applied.
 
 #### Post processing
 
