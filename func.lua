@@ -40,6 +40,17 @@ STATE = {
   inst_index = nil   -- instrument index
 }
 
+
+-- give it a tag name and it will return bool if the tag is enabled
+function tag_is_enabled(tag_name)
+  local index = get_table_index_by_value(TAGS, tag_name)
+
+  -- useful for debug during dev, but noisy in prod
+  -- print("tag", tag, "index: ", index)
+
+  return OPTIONS.tags[index]
+end
+
 -- reset state to be ready to record
 function reset_state()
   STATE.notei = nil
@@ -142,7 +153,8 @@ function insert_adsr()
     device.parameters[1].value = 0
 
     -- extend Release if instrument is tagged with Pad or Strings
-    if OPTIONS.tags[5] or OPTIONS.tags[6] then
+    if tag_is_enabled("Pad") or tag_is_enabled("Strings") then
+    --if OPTIONS.tags[5] or OPTIONS.tags[6] then
       device.parameters[5].value = 0.4
     end
   else

@@ -32,3 +32,13 @@ end
 function upcase(word)
   return string.gsub(" "..word, "%W%l", string.upper):sub(2)
 end
+
+function get_table_index_by_value(values, value)
+  local index={}
+
+  for k,v in pairs(values) do
+     index[v]=k
+  end
+
+  return index[value]
+end
