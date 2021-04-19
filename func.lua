@@ -11,12 +11,13 @@ OPTIONS = {
   notes = {[0]=true, false, false, false, true, false, false, false, true, false, false, false},
   name = "Recorded Hardware",
   hardware_name = "",
-  background = false,
-  post_record_normalize_and_trim = false,
-  add_adsr = false,
+  background = true,
+  post_record_normalize_and_trim = true,
   mapping = 2,
   layers = 1,
-  between_time = 100
+  between_time = 100,
+  add_adsr = true,
+  trigger_as_one_shot = false
 }
 
 TAGS = {[0]="Bass", "Drum", "FX", "Keys", "Lead", "Pad", "Strings",  "Vocal"}
@@ -86,6 +87,16 @@ function toggle_button(button, ttype)
   -- set visual
   vb.views[tostring(ttype).."_button_"..tostring(button)].color = 
     OPTIONS[ttype][button] and C_PRESSED or C_NOT_PRESSED
+end
+
+function toggle_one_shot(state)
+  OPTIONS.trigger_as_one_shot = state
+
+  local samples = renoise.song().selected_instrument.samples
+
+  for s=1, #samples do
+    samples[s].oneshot = state
+  end
 end
 
 -- adds/removes the ADSR module from the instrument

@@ -153,7 +153,7 @@ function show_menu()
     margin = DEFAULT_MARGIN*2,
     width = UNIT*24,
     spacing = UNIT/2,
-    
+ 
     -- instrument naming
     vb:column {
       style = "panel",
@@ -324,66 +324,6 @@ function show_menu()
       }
     },
 
-    -- big buttons
-    vb:horizontal_aligner {
-      mode = "center",
-      width = "100%",
-
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Start",
-        notifier = go,
-        tooltip = "Start the recording process."
-      },
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Stop",
-        notifier = stop,
-        tooltip = "Stop the recording process."
-      },
-      vb:button {
-        width = "33%",
-        height = 2*UNIT,
-        text = "Recording Settings",
-        notifier = configure,
-        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
-      }
-    },
-    vb:horizontal_aligner {
-      vb:row {
-        spacing = UNIT/3,
-
-        vb:checkbox {
-          value = OPTIONS.post_record_normalize_and_trim,
-          notifier = function(x) OPTIONS.post_record_normalize_and_trim = x end,
-          tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
-        },
-
-        vb:text {
-          text = "Normalize and Trim samples after recording"
-        }
-      },
-    },
-
-    vb:horizontal_aligner {
-      vb:row {
-        spacing = UNIT/3,
-
-        vb:checkbox {
-          value = OPTIONS.add_adsr,
-          notifier = function(x) toggle_adsr(x) end,
-          tooltip = "If checked, an ADSR effect will be added to the instrument. If Pad or String tags are selected, the envelope's release time will be slightly longer by default."
-        },
-
-        vb:text {
-          text = "Insert ADSR"
-        }
-      },
-    },
-    
-
     -- sample processing
     vb:column {
       style = "panel",
@@ -416,6 +356,25 @@ function show_menu()
             text = "Process in background"
           },
         }
+      },
+
+      vb:horizontal_aligner {
+        spacing = UNIT,
+        margin = DEFAULT_MARGIN,
+
+        vb:row {
+          spacing = UNIT/3,
+
+          vb:checkbox {
+            value = OPTIONS.post_record_normalize_and_trim,
+            notifier = function(x) OPTIONS.post_record_normalize_and_trim = x end,
+            tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
+          },
+
+          vb:text {
+            text = "Normalize and Trim samples after recording"
+          }
+        },
       },
       
       vb:horizontal_aligner {
@@ -455,12 +414,98 @@ function show_menu()
           }
         }
       },
-    }
+    },
+
+    -- instrument options
+    vb:column {
+      style = "panel",
+      width = "100%",
+      margin = DEFAULT_MARGIN,
+    
+      vb:text {
+        text = "Instrument Options",
+        align = "center",
+        width = "100%"
+      },
+      vb:space {
+        height = UNIT/3
+      },
+
+      vb:horizontal_aligner {
+        vb:row {
+          spacing = UNIT/3,
+          margin = DEFAULT_MARGIN,
+
+          vb:checkbox {
+            value = OPTIONS.add_adsr,
+            notifier = function(x) toggle_adsr(x) end,
+            tooltip = "If checked, an ADSR effect will be added to the instrument. If Pad or String tags are selected, the envelope's release time will be slightly longer by default."
+          },
+
+          vb:text {
+            text = "Insert ADSR"
+          }
+        },
+      },
+
+      vb:horizontal_aligner {
+        spacing = UNIT,
+        margin = DEFAULT_MARGIN,
+
+        vb:row {
+          spacing = UNIT/3,
+          
+          vb:checkbox{
+            value = OPTIONS.trigger_as_one_shot,
+            notifier = function(x)
+                        toggle_one_shot(x)
+                       end,
+            tooltip = "If checked, all samples will be triggered as one-shot. Useful for drum instruments"
+          },
+
+          vb:text {
+            text = "Trigger: One-Shot"
+          },
+        }
+      },
+    },
+
+    -- big buttons
+    vb:horizontal_aligner {
+      mode = "center",
+      width = "100%",
+
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Start",
+        notifier = go,
+        tooltip = "Start the recording process."
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Stop",
+        notifier = stop,
+        tooltip = "Stop the recording process."
+      },
+      vb:button {
+        width = "33%",
+        height = 2*UNIT,
+        text = "Recording Settings",
+        notifier = configure,
+        tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
+      }
+    },
   }
 
   -- init views and fields
   select_midi_device(1)
   update_record_time_txt()
+
+  if OPTIONS.add_adsr then 
+    insert_adsr()
+  end
 
   WINDOW = renoise.app():show_custom_dialog(
     title, content
