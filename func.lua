@@ -13,15 +13,14 @@ OPTIONS = {
   hardware_name = "",
   background = false,
   post_record_normalize_and_trim = false,
+  add_adsr = false,
   mapping = 2,
-  layers = 1
+  layers = 1,
+  between_time = 100
 }
 
 TAGS = {[0]="Bass", "Drum", "FX", "Keys", "Lead", "Pad", "Strings",  "Vocal"}
 NOTES = {[0]="C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-
--- the amount of time to delay before creating and recording the next sample
-STOP_NOTE_DELAY = 300
 
 -- note/tag button colors
 C_PRESSED = {100, 200, 100}
@@ -29,15 +28,28 @@ C_NOT_PRESSED = {20, 20, 20}
 
 -- state
 STATE = {
-  midi_device = nil,    -- current midi device name
-  dev = nil,            -- current midi device object
-  recording = false,    -- are we actively recording
-  notes = nil,          -- list of notes to send to the midi device
-  notei = nil,          -- current index in note list
-  layers = nil,         -- number of velocity layers for each note
-  layeri = nil,         -- current layer
-  total = nil           -- total amount of notes that will be sampled
+  midi_device = nil, -- current midi device name
+  dev = nil,         -- current midi device object
+  recording = false, -- are we actively recording
+  notes = nil,       -- list of notes to send to the midi device
+  notei = nil,       -- current index in note list
+  layers = nil,      -- number of velocity layers for each note
+  layeri = nil,      -- current layer
+  total = nil,       -- total amount of notes that will be sampled
+  inst = nil,        -- instrument to which samples will be saved
+  inst_index = nil   -- instrument index
 }
+
+
+-- give it a tag name and it will return bool if the tag is enabled
+function tag_is_enabled(tag_name)
+  local index = get_table_index_by_value(TAGS, tag_name)
+
+  -- useful for debug during dev, but noisy in prod
+  -- print("tag", tag, "index: ", index)
+
+  return OPTIONS.tags[index]
+end
 
 -- reset state to be ready to record
 function reset_state()
@@ -48,6 +60,8 @@ function reset_state()
   STATE.layers = nil
   STATE.layeri = nil
   STATE.total = nil
+  STATE.inst = nil
+  STATE.inst_index = nil
   
   TOCALL = nil -- from util.lua
   KILL = false -- from util.lua
@@ -72,6 +86,91 @@ function toggle_button(button, ttype)
   -- set visual
   vb.views[tostring(ttype).."_button_"..tostring(button)].color = 
     OPTIONS[ttype][button] and C_PRESSED or C_NOT_PRESSED
+end
+
+-- adds/removes the ADSR module from the instrument
+function toggle_adsr(state)
+  OPTIONS.add_adsr = state
+
+  if state then
+    insert_adsr()
+  else
+    delete_adsr()
+  end
+end
+
+-- this function wraps adding modulatation devices to the current instrument
+-- thanks to Raul (ulneiz) for providing this
+-- https://forum.renoise.com/t/add-an-adsr-and-manipulate-its-settings-to-an-instrument/63826/7
+
+-- Device ids (idx)
+-- 1 - Modulation/Operand
+-- 2 - Modulation/Key Tracking
+-- 3 - Modulation/Velocity Tracking
+-- 4 - Modulation/AHDSR
+-- 5 - Modulation/Envelope
+-- 6 - Modulation/Stepper
+-- 7 - Modulation/LFO
+-- 8 - Modulation/Fader
+function insert_modulation_device(idx,target_idx,device_idx)
+  local device = nil
+  local mod_set=renoise.song().selected_sample_modulation_set
+
+  if mod_set then
+    -- oprint(mod_set.available_devices[idx])
+    local device_path=mod_set.available_devices[idx]
+    device = mod_set:insert_device_at(device_path,target_idx,device_idx)
+  end
+
+  return device
+end
+
+-- remove modulation device at index
+function delete_modulation_device(idx)
+  local mod_set=renoise.song().selected_sample_modulation_set
+
+  if mod_set then
+    mod_set:delete_device_at(idx)
+  end
+end
+
+-- insert ADSR envelope as first modulation device
+function insert_adsr()
+  local device = insert_modulation_device(4, 1, 1)
+
+  -- param ids:
+  -- 1 Attack
+  -- 2 Hold
+  -- 3 Decay
+  -- 4 Sustain
+  -- 5 Release
+  -- 6 Attack Scaling
+  -- 7 Decay Scaling
+  -- 8 Release Scaling
+
+  if device then
+    -- set attack (id 1) to 0
+    device.parameters[1].value = 0
+
+    -- extend Release if instrument is tagged with Pad or Strings
+    if tag_is_enabled("Pad") or tag_is_enabled("Strings") then
+    --if OPTIONS.tags[5] or OPTIONS.tags[6] then
+      device.parameters[5].value = 0.4
+    end
+  else
+    print("insert_adsr() failed. device was nil")
+  end
+end
+
+-- remove the first modulation if it's an AHDSR
+function delete_adsr()
+  local mod_set=renoise.song().selected_sample_modulation_set
+
+  if mod_set and mod_set.devices[1].name == "Volume AHDSR" then
+    mod_set:delete_device_at(1)
+  else
+    print("Device 1 is not an AHDSR")
+  end
 end
 
 -- generate list of midi notes to send to the controller
@@ -126,11 +225,13 @@ function go()
   STATE.layers = OPTIONS.layers
   STATE.layeri = 1
   STATE.total = table.count(STATE.notes) * STATE.layers
+  STATE.inst = renoise.song().selected_instrument
+  STATE.inst_index = renoise.song().selected_instrument_index
   
   print("Going to create "..tostring(STATE.total).." samples.")
 
   -- get inst
-  local inst = renoise.song().selected_instrument
+  local inst = STATE.inst
 
   -- clear samples
   while table.count(inst.samples) > 0 do
@@ -222,7 +323,7 @@ function get_mapping_dict()
 end
 
 function do_mapping(mapping_dict)
-  local inst = renoise.song().selected_instrument
+  local inst = STATE.inst
   
   for i=1,table.count(STATE.notes) do
     for l=1,STATE.layers do
@@ -244,7 +345,7 @@ end
 -- apply finishing touches
 function finish()
   update_status("Finishing...")
-  local inst = renoise.song().selected_instrument
+  local inst = STATE.inst
 
   local lunit = 128/STATE.layers
 
@@ -317,6 +418,16 @@ end
 -- get ready to play a note
 -- recording starts here
 function prep_note()
+  -- check that "new instrument on each take" is not selected by comparing the
+  --   currently selected instrument index to the one we had when we started.
+  if renoise.song().selected_instrument_index ~= STATE.inst_index then
+    renoise.app():show_prompt("Oops!", "A different instrument became selected. The same instrument must remain selected throughout the process. Make sure the \"Create new instrument on each take\" option is NOT checked in the Renoise recording settings dialog.", {"OK"})
+    stop()
+    renoise.song().selected_instrument_index = STATE.inst_index
+    renoise.app().window.sample_record_dialog_is_visible = true
+    return
+  end
+
   local idx = (STATE.notei-1)*STATE.layers + (STATE.layeri-1) + 1
   print("Prepping note "..tostring(idx).."...")
   renoise.song().selected_sample_index = idx
@@ -359,16 +470,10 @@ function stop_note()
     STATE.notei = STATE.notei + 1
   end
 
-  -- Some users noticed/reported that samples were not being recorded.
-  -- Adding a 300ms delay before calling the next function helps ensure
-  -- renoise has enough time to handle all of the Lua interface API requests
-  -- and not miss or skip one for whatever timing related reason. In my testing, 
-  -- the timing issue was present on Linux but not Windows so it could 
-  -- have something to do with build architecture.
   if STATE.notes[STATE.notei] ~= nil then
-    call_in(prep_note, STOP_NOTE_DELAY)
+    call_in(prep_note, OPTIONS.between_time)
   else
-    call_in(finish, STOP_NOTE_DELAY)
+    call_in(finish, OPTIONS.between_time)
   end
 end
 

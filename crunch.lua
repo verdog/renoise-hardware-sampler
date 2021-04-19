@@ -111,6 +111,7 @@ function normalize_coroutine()
   end
   
   -- maximize sample volumes
+  -- this should not be STATE.inst; this should be usable on any instrument
   local inst = renoise.song().selected_instrument
   local maxes = {}
 
@@ -189,6 +190,7 @@ function trim_coroutine()
   end
 
   -- trim silence
+  -- this should not be STATE.inst; this should be usable on any instrument
   local inst = renoise.song().selected_instrument
 
   for i = 1,table.count(inst.samples) do

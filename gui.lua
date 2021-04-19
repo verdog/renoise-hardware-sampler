@@ -14,8 +14,8 @@ end
 function update_record_time_txt()
   local notes = gen_notes()
   local total_samples = #notes * tonumber(OPTIONS.layers)
-  local stop_note_delay_ms = STOP_NOTE_DELAY / 1000
-  local seconds = (tonumber(OPTIONS.length) + tonumber(OPTIONS.release) + stop_note_delay_ms) * total_samples
+  local between_time_ms = tonumber(OPTIONS.between_time) / 1000
+  local seconds = (tonumber(OPTIONS.length) + tonumber(OPTIONS.release) + between_time_ms) * total_samples
   local time = seconds
 
   --How to convert decimal seconds to time format
@@ -151,7 +151,7 @@ function show_menu()
 
   local content = vb:column {
     margin = DEFAULT_MARGIN*2,
-    width = UNIT*20,
+    width = UNIT*24,
     spacing = UNIT/2,
     
     -- instrument naming
@@ -203,7 +203,7 @@ function show_menu()
         vb:textfield {
           id = "hardware_name_textfield",
           value = OPTIONS.hardware_name,
-          notifier =  function(x) update_instrument_name() end,
+          notifier =  function() update_instrument_name() end,
           width = "50%",
           tooltip = "Append the hardware device's name to further identify."
         }
@@ -227,7 +227,7 @@ function show_menu()
       margin = DEFAULT_MARGIN,
       
       vb:text {
-        text = "Midi and note options",
+        text = "MIDI and Note Options",
         align = "center",
         width = "100%"
       },
@@ -276,7 +276,6 @@ function show_menu()
       vb:horizontal_aligner {
         margin = DEFAULT_MARGIN,
         spacing = DEFAULT_MARGIN,
-        
         
         vb:text {
           text = "Mapping style:"
@@ -353,9 +352,6 @@ function show_menu()
       }
     },
     vb:horizontal_aligner {
-      spacing = UNIT,
-      margin = DEFAULT_MARGIN,
-
       vb:row {
         spacing = UNIT/3,
 
@@ -371,6 +367,23 @@ function show_menu()
       },
     },
 
+    vb:horizontal_aligner {
+      vb:row {
+        spacing = UNIT/3,
+
+        vb:checkbox {
+          value = OPTIONS.add_adsr,
+          notifier = function(x) toggle_adsr(x) end,
+          tooltip = "If checked, an ADSR effect will be added to the instrument. If Pad or String tags are selected, the envelope's release time will be slightly longer by default."
+        },
+
+        vb:text {
+          text = "Insert ADSR"
+        }
+      },
+    },
+    
+
     -- sample processing
     vb:column {
       style = "panel",
@@ -378,7 +391,7 @@ function show_menu()
       margin = DEFAULT_MARGIN,
     
       vb:text {
-        text = "Post processing",
+        text = "Post Processing",
         align = "center",
         width = "100%"
       },
