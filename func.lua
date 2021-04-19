@@ -20,6 +20,9 @@ OPTIONS = {
 TAGS = {[0]="Bass", "Drum", "FX", "Keys", "Lead", "Pad", "Strings",  "Vocal"}
 NOTES = {[0]="C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 
+-- the amount of time to delay before creating and recording the next sample
+STOP_NOTE_DELAY = 300
+
 -- note/tag button colors
 C_PRESSED = {100, 200, 100}
 C_NOT_PRESSED = {20, 20, 20}
@@ -363,9 +366,9 @@ function stop_note()
   -- the timing issue was present on Linux but not Windows so it could 
   -- have something to do with build architecture.
   if STATE.notes[STATE.notei] ~= nil then
-    call_in(prep_note, 300)
+    call_in(prep_note, STOP_NOTE_DELAY)
   else
-    call_in(finish, 300)
+    call_in(finish, STOP_NOTE_DELAY)
   end
 end
 

@@ -10,6 +10,36 @@ function textfield(_text, _value, _notif)
   return
 end
 
+-- displays the total number of samples to be recorded and estimated job length
+function update_record_time_txt()
+  local notes = gen_notes()
+  local total_samples = #notes * tonumber(OPTIONS.layers)
+  local stop_note_delay_ms = STOP_NOTE_DELAY / 1000
+  local seconds = (tonumber(OPTIONS.length) + tonumber(OPTIONS.release) + stop_note_delay_ms) * total_samples
+  local time = seconds
+
+  --How to convert decimal seconds to time format
+  --Convert seconds to hh:mm:ss
+
+  --7147.3 seconds can be converted to hours by dividing 7147.3 seconds / 3600 seconds/hour ≈ 1.9854 hours
+  --1.9854 hours can be broken down to 1 hour plus 0.9854 hours - 1 hour
+  --0.9854 hours * 60 minutes/hour = 59.124 minutes - 59 minutes
+  --0.124 minutes * 60 seconds/minute = 7.44 seconds - rounded = 7 seconds
+  --01:59:07
+
+  local hours = seconds / 3600
+  local hour = math.floor(hours)
+  local minutes = (hours - hour) * 60
+  local minute = math.floor(minutes)
+  local seconds = (minutes - minute) * 60
+  local second = math.floor(seconds)
+  local millisecond = math.floor((seconds - second) * 60)
+
+  time = string.format("%d:%02d:%02d:%02d", hour, minute, second, millisecond)
+
+  vb.views.record_time_txt.text = string.format("%d Samples: ~%s", total_samples, time)
+end
+
 function value_box(_text, _tip, _value, _min, _max, _steps, _notif, _tostring, _tonum, _width)
   return vb:row {
     vb:text {
@@ -68,12 +98,19 @@ end
 function note_matrix()
   local tooltip = "Select notes that will be sampled in each octave."
 
-  return button_matrix(NOTES, "notes", OPTIONS.notes, tooltip)
+  local callback = function()
+    update_record_time_txt()
+  end
+
+  return button_matrix(NOTES, "notes", OPTIONS.notes, tooltip, callback)
 end
 
 function tag_matrix()
   local tooltip = "Select tags to include in instrument name"
-  local callback = function () update_instrument_name() end
+
+  local callback = function()
+    update_instrument_name()
+  end
   
   return button_matrix(TAGS, "tags", OPTIONS.tags, tooltip, callback)
 end
@@ -206,9 +243,30 @@ function show_menu()
         mode = "center",
         spacing = DEFAULT_MARGIN,
   
-        value_box("Low Octave", "The lowest octave from which to sample.", OPTIONS.low, 0, 9, {1, 2}, function(x) OPTIONS.low = x end, tostring, math.floor),
-        value_box("High Octave", "The highest octave from which to sample.", OPTIONS.high, 0, 9, {1, 2}, function(x) OPTIONS.high = x end, tostring, math.floor),
-        value_box("Vel. Layers", "How many different equally spaced velocities to sample for a given note.", OPTIONS.layers, 1, 32, {1, 2}, function(x) OPTIONS.layers = x end, tostring, math.floor)
+        value_box("Low Octave", "The lowest octave from which to sample.", 
+                  OPTIONS.low, 0, 9, {1, 2}, 
+                  function(x) 
+                    OPTIONS.low = x 
+                    update_record_time_txt()
+                  end, 
+                  tostring, 
+                  math.floor),
+        value_box("High Octave", "The highest octave from which to sample.", 
+                  OPTIONS.high, 0, 9, {1, 2}, 
+                  function(x) 
+                    OPTIONS.high = x 
+                    update_record_time_txt()
+                  end, 
+                  tostring, 
+                  math.floor),
+        value_box("Vel. Layers", "How many different equally spaced velocities to sample for a given note.", 
+                  OPTIONS.layers, 1, 32, {1, 2}, 
+                  function(x) 
+                    OPTIONS.layers = x 
+                    update_record_time_txt()
+                  end, 
+                  tostring, 
+                  math.floor)
       },
       
       -- notes selection
@@ -237,14 +295,36 @@ function show_menu()
       
       -- sample length
       vb:horizontal_aligner {
-        mode = "center",
+        mode = "left",
         spacing = DEFAULT_MARGIN,
   
-        value_box("Hold time", "How long the note on signal will be held.", OPTIONS.length, 0.1, 60, {0.1, 1}, function(x) OPTIONS.length = x end, function(x) return tostring(x).." s." end, tonumber),
-        value_box("Release time", "How long the tool will wait for the note to release after note off.", OPTIONS.release, 0.1, 60, {0.1, 1}, function (x) OPTIONS.release = x end, function(x) return tostring(x).." s." end, tonumber)
+        value_box("Hold time", "How long the note on signal will be held.", 
+                  OPTIONS.length, 0.1, 60, {0.1, 1}, 
+                  function(x) 
+                    OPTIONS.length = x 
+                    update_record_time_txt()
+                  end, 
+                  function(x) 
+                    return tostring(x).." s." 
+                  end, 
+                  tonumber),
+        value_box("Release time", "How long the tool will wait for the note to release after note off.", 
+                  OPTIONS.release, 0.1, 60, {0.1, 1}, 
+                  function (x) 
+                    OPTIONS.release = x 
+                    update_record_time_txt()
+                  end, 
+                  function(x) 
+                    return tostring(x).." s." 
+                  end, 
+                  tonumber),
+        vb:text {
+          id = "record_time_txt",
+          text = "Record time:"
+        }
       }
     },
-      
+
     -- big buttons
     vb:horizontal_aligner {
       mode = "center",
@@ -365,7 +445,9 @@ function show_menu()
     }
   }
 
+  -- init views and fields
   select_midi_device(1)
+  update_record_time_txt()
 
   WINDOW = renoise.app():show_custom_dialog(
     title, content
