@@ -221,6 +221,57 @@ function show_menu()
       tag_matrix()
     },
 
+    vb:column {
+      style = "panel",
+      width = "100%",
+      margin = DEFAULT_MARGIN,
+    
+      vb:text {
+        text = "Instrument Settings",
+        align = "center",
+        width = "100%"
+      },
+      vb:space {
+        height = UNIT/3
+      },
+
+      vb:horizontal_aligner {
+        spacing = UNIT,
+        margin = DEFAULT_MARGIN,
+        vb:row {
+          spacing = UNIT/3,
+
+          vb:checkbox {
+            value = OPTIONS.add_adsr,
+            notifier = function(x) toggle_adsr(x) end,
+            tooltip = "If checked, an ADSR effect will be added to the instrument. If Pad or String tags are selected, the envelope's release time will be slightly longer by default."
+          },
+
+          vb:text {
+            text = "Insert ADSR"
+          }
+        },
+      },
+
+      vb:horizontal_aligner {
+        spacing = UNIT,
+        margin = DEFAULT_MARGIN,
+        vb:row {
+          spacing = UNIT/3,
+
+          vb:checkbox {
+            value = OPTIONS.add_adsr,
+            notifier = function(x) toggle_oneshot(x) end,
+            tooltip = "If checked, the trigger style for all samples will be One-Shot. Unchecking will restore the default trigger value."
+          },
+
+          vb:text {
+            text = "Trigger as One-Shot"
+          }
+        },
+      },
+    },
+
     -- midi options
     vb:column {
       style = "panel",
@@ -351,38 +402,6 @@ function show_menu()
         tooltip = "Open the Renoise sample recording window. Tweak your input settings to your liking here."
       }
     },
-    vb:horizontal_aligner {
-      vb:row {
-        spacing = UNIT/3,
-
-        vb:checkbox {
-          value = OPTIONS.post_record_normalize_and_trim,
-          notifier = function(x) OPTIONS.post_record_normalize_and_trim = x end,
-          tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
-        },
-
-        vb:text {
-          text = "Normalize and Trim samples after recording"
-        }
-      },
-    },
-
-    vb:horizontal_aligner {
-      vb:row {
-        spacing = UNIT/3,
-
-        vb:checkbox {
-          value = OPTIONS.add_adsr,
-          notifier = function(x) toggle_adsr(x) end,
-          tooltip = "If checked, an ADSR effect will be added to the instrument. If Pad or String tags are selected, the envelope's release time will be slightly longer by default."
-        },
-
-        vb:text {
-          text = "Insert ADSR"
-        }
-      },
-    },
-    
 
     -- sample processing
     vb:column {
@@ -416,6 +435,25 @@ function show_menu()
             text = "Process in background"
           },
         }
+      },
+
+      vb:horizontal_aligner {
+        spacing = UNIT,
+        margin = DEFAULT_MARGIN,
+        
+        vb:row {
+          spacing = UNIT/3,
+
+          vb:checkbox {
+            value = OPTIONS.post_record_normalize_and_trim,
+            notifier = function(x) OPTIONS.post_record_normalize_and_trim = x end,
+            tooltip = "If checked, all samples will be normalized and trimmed after recording has completed."
+          },
+
+          vb:text {
+            text = "Normalize and Trim samples after recording"
+          }
+        },
       },
       
       vb:horizontal_aligner {
