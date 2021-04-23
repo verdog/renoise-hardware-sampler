@@ -109,6 +109,11 @@ When enabled, a "Volume AHDSR" envelope will be inserted into the **first** slot
 
 **Note**, if the "Pad" or "Strings" tags are selected, the Release time of the envelope will be set to around 4 seconds. If any tags, including none, are selected, the default 1 second Release time will be applied.
 
+
+#### Trigger as One-Shot
+
+When enabled, all samples will be triggered as one-shot. When disabled, the default trigger value will be applied.
+
 #### Post processing
 
 These are post-processing options. Click these buttons after the recording process is finished. It is also possible to use these on samples recorded via other means than this tool -- the buttons simply process all current samples.
