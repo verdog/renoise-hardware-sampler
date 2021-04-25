@@ -13,6 +13,7 @@ OPTIONS = {
   hardware_name = "",
   background = false,
   post_record_normalize_and_trim = false,
+  trigger_as_oneshot = false,
   add_adsr = false,
   mapping = 2,
   layers = 1,
@@ -86,6 +87,18 @@ function toggle_button(button, ttype)
   -- set visual
   vb.views[tostring(ttype).."_button_"..tostring(button)].color = 
     OPTIONS[ttype][button] and C_PRESSED or C_NOT_PRESSED
+end
+
+-- toggle the one-shot trigger type of all samples
+function toggle_oneshot(state)
+  OPTIONS.trigger_as_oneshot = state
+
+  -- selected_instrument is never nil
+  local inst = renoise.song().selected_instrument
+
+  for i=1,#inst.samples do
+    inst.samples[i].oneshot = state
+  end
 end
 
 -- adds/removes the ADSR module from the instrument
@@ -373,6 +386,11 @@ function finish()
   -- normalize samples if enabled
   if OPTIONS.post_record_normalize_and_trim then
     normalize_and_trim()
+  end
+
+  -- set trigger for all samples as one-shot
+  if OPTIONS.trigger_as_oneshot then
+    toggle_oneshot(true)
   end
 end
 
