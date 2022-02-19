@@ -15,6 +15,7 @@ OPTIONS = {
   post_record_normalize_and_trim = false,
   mapping = 2,
   layers = 1,
+  rrobin = 1,
   between_time = 100
 }
 
@@ -34,6 +35,8 @@ STATE = {
   notei = nil,       -- current index in note list
   layers = nil,      -- number of velocity layers for each note
   layeri = nil,      -- current layer
+  rrobin = nil,      -- number of round robin layers for each note
+  rrobini = nil,     -- current round robin layer
   total = nil,       -- total amount of notes that will be sampled
   inst = nil,        -- instrument to which samples will be saved
   inst_index = nil   -- instrument index
@@ -47,6 +50,8 @@ function reset_state()
   STATE.recording = false
   STATE.layers = nil
   STATE.layeri = nil
+  STATE.rrobin = nil
+  STATE.rrobini = nil
   STATE.total = nil
   STATE.inst = nil
   STATE.inst_index = nil
@@ -125,9 +130,11 @@ function go()
   STATE.notes = gen_notes()
   STATE.notei = 1
   STATE.dev = get_midi_dev()
-  STATE.layers = OPTIONS.layers
+  STATE.layers = math.floor(OPTIONS.layers)
   STATE.layeri = 1
-  STATE.total = table.count(STATE.notes) * STATE.layers
+  STATE.rrobin = math.floor(OPTIONS.rrobin)
+  STATE.rrobini = 1
+  STATE.total = table.count(STATE.notes) * STATE.layers * STATE.rrobin
   STATE.inst = renoise.song().selected_instrument
   STATE.inst_index = renoise.song().selected_instrument_index
   
@@ -153,6 +160,7 @@ function go()
   prep_note()
 end
 
+-- returns dict mapping note -> [low, high] mapping boundaries
 function get_mapping_dict()
   -- set up mappings
   local mapping_dict = {}
@@ -230,16 +238,18 @@ function do_mapping(mapping_dict)
   
   for i=1,table.count(STATE.notes) do
     for l=1,STATE.layers do
-      if mapping_dict[STATE.notes[i]] then
-        local idx = (i-1)*STATE.layers + (l-1) + 1
-        local mapping = inst.sample_mappings[1][idx]
-        
-        mapping.base_note = STATE.notes[i]
-        mapping.note_range = mapping_dict[STATE.notes[i]]
-        
-        local lunit = 128/STATE.layers
-        local lrange = {math.floor((l-1)*lunit), math.floor((l)*lunit - 1)}
-        mapping.velocity_range = lrange
+      for r=1,STATE.rrobin do
+        if mapping_dict[STATE.notes[i]] then
+          local idx = get_sample_index(i, l, r)
+          local mapping = inst.sample_mappings[1][idx]
+          
+          mapping.base_note = STATE.notes[i]
+          mapping.note_range = mapping_dict[STATE.notes[i]]
+          
+          local lunit = 128/STATE.layers
+          local lrange = {math.floor((l-1)*lunit), math.floor((l)*lunit - 1)}
+          mapping.velocity_range = lrange
+        end
       end
     end
   end
@@ -258,14 +268,21 @@ function finish()
   -- name samples
   for i=1,table.count(STATE.notes) do
     for l=1,STATE.layers do
-      local vel = math.floor((l)*lunit - 1)
-      local idx = (i-1)*STATE.layers + (l-1) + 1
-      inst.samples[idx].name = note_to_name(STATE.notes[i]).."_"..string.format("%X", vel)
+      for r=1,STATE.rrobin do
+        local vel = math.floor((l)*lunit - 1)
+        local idx = get_sample_index(i, l, r)
+        inst.samples[idx].name = note_to_name(STATE.notes[i]).."_"..string.format("%X", vel).."_"..string.format("%X", r)
+      end
     end
   end
 
   -- do mappings
   do_mapping(get_mapping_dict())
+
+  -- set mapping to round robin if specified
+  if STATE.rrobin > 1 then
+    inst.sample_mapping_overlap_mode = renoise.Instrument.OVERLAP_MODE_CYCLED
+  end
 
   -- close recording window
   renoise.app().window.sample_record_dialog_is_visible = false
@@ -318,6 +335,10 @@ function configure()
   renoise.app().window.sample_record_dialog_is_visible = true
 end
 
+function get_sample_index(notei, layeri, rrobini)
+  return (notei-1)*STATE.layers*STATE.rrobin + STATE.rrobin*(layeri-1) + (rrobini-1) + 1
+end
+
 -- get ready to play a note
 -- recording starts here
 function prep_note()
@@ -331,7 +352,7 @@ function prep_note()
     return
   end
 
-  local idx = (STATE.notei-1)*STATE.layers + (STATE.layeri-1) + 1
+  local idx = get_sample_index(STATE.notei, STATE.layeri, STATE.rrobini)
   print("Prepping note "..tostring(idx).."...")
   renoise.song().selected_sample_index = idx
   renoise.app().window.sample_record_dialog_is_visible = true
@@ -366,11 +387,15 @@ function stop_note()
   renoise.song().transport:start_stop_sample_recording()
   STATE.recording = false
 
-  STATE.layeri = STATE.layeri + 1
-  
-  if STATE.layeri > STATE.layers then
-    STATE.layeri = 1
-    STATE.notei = STATE.notei + 1
+  STATE.rrobini = STATE.rrobini + 1
+  if STATE.rrobini > STATE.rrobin then
+    STATE.rrobini = 1
+    STATE.layeri = STATE.layeri + 1
+
+    if STATE.layeri > STATE.layers then
+      STATE.layeri = 1
+      STATE.notei = STATE.notei + 1
+    end
   end
 
   if STATE.notes[STATE.notei] ~= nil then
