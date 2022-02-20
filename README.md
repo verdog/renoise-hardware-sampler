@@ -61,9 +61,13 @@ The lowest octave to sample (inclusive). The octave settings correspond to the o
 
 The highest octave to sample (inclusive).
 
-##### Vel. Layers
+##### Vel. Layers (Velocity Layers)
 
 For each sampled note, record this many samples of equally spaced velocities.
+
+##### R.R. Layers (Round Robin layers)
+
+For each mapping produced, record this many samples for it and turn on round robin rotation.
 
 ##### Notes Matrix
 
