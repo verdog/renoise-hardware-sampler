@@ -18,7 +18,7 @@ Prefs = {}
   
   -- reads saved preferences. 
   -- default argument required and is used (and saved) if
-  -- the prefernce doesn't exist
+  -- the preference doesn't exist
   function Prefs:read(pref, default)
     local value = nil
     
@@ -34,7 +34,7 @@ Prefs = {}
   
   -- writes or updates prefernces for later recall
   function Prefs:write(pref, value)
-    -- if the setting exists, update it's value
+    -- if the setting exists, update its value
     if self.options[tostring(pref)] then
       self.options[tostring(pref)].value = value
     -- if the settind doesn't exist yet, save it.
