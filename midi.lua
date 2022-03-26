@@ -6,8 +6,11 @@ ALL_NOTE_OFF_1 = 0xB0
 ALL_NOTE_OFF_2 = 0x7B
 
 -- get midi device name
-function select_midi_device(dev)
-  STATE.midi_device = renoise.Midi.available_output_devices()[dev]
+function select_midi_device(dev_index)
+  STATE.midi_device = renoise.Midi.available_output_devices()[dev_index]
+  STATE.midi_device_index = dev_index
+  prefs:write("midi_device_index", dev_index)
+  
   print("Selected device: "..STATE.midi_device)
 end
 

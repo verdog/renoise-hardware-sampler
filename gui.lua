@@ -1,8 +1,10 @@
 require"func"
 require"crunch"
+require"prefs"
 
 vb = nil
 WINDOW = nil
+prefs = Prefs:new()
 DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
 UNIT = renoise.ViewBuilder.DEFAULT_CONTROL_HEIGHT
 
@@ -79,6 +81,7 @@ function tag_matrix()
 end
 
 function midi_list()
+  print("midi_device_index: ", STATE.midi_device_index)
   return vb:horizontal_aligner {
     margin = DEFAULT_MARGIN,
     spacing = 1,
@@ -90,6 +93,7 @@ function midi_list()
     vb:popup {
       width = "50%",
       items = renoise.Midi.available_output_devices(),
+      value = STATE.midi_device_index,
       notifier = select_midi_device,
       tooltip = "MIDI device to send MIDI signals to."
     },
@@ -367,7 +371,8 @@ function show_menu()
     }
   }
 
-  select_midi_device(1)
+  -- load the saved midi device. Default to device 1 if a preference doesn't exist
+  select_midi_device(prefs:read('midi_device_index'), 1)
 
   WINDOW = renoise.app():show_custom_dialog(
     title, content

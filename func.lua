@@ -1,5 +1,7 @@
 require"util"
 require"midi"
+require"prefs"
+
 
 -- global options box
 OPTIONS = {
@@ -19,6 +21,7 @@ OPTIONS = {
   between_time = 100
 }
 
+
 TAGS = {[0]="Bass", "Drum", "FX", "Keys", "Lead", "Pad", "Strings",  "Vocal"}
 NOTES = {[0]="C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 
@@ -28,18 +31,19 @@ C_NOT_PRESSED = {20, 20, 20}
 
 -- state
 STATE = {
-  midi_device = nil, -- current midi device name
-  dev = nil,         -- current midi device object
-  recording = false, -- are we actively recording
-  notes = nil,       -- list of notes to send to the midi device
-  notei = nil,       -- current index in note list
-  layers = nil,      -- number of velocity layers for each note
-  layeri = nil,      -- current layer
-  rrobin = nil,      -- number of round robin layers for each note
-  rrobini = nil,     -- current round robin layer
-  total = nil,       -- total amount of notes that will be sampled
-  inst = nil,        -- instrument to which samples will be saved
-  inst_index = nil   -- instrument index
+  midi_device = nil,    -- current midi device name
+  dev = nil,            -- current midi device object
+  midi_device_index = 1,-- current midi device selected in options list
+  recording = false,    -- are we actively recording
+  notes = nil,          -- list of notes to send to the midi device
+  notei = nil,          -- current index in note list
+  layers = nil,         -- number of velocity layers for each note
+  layeri = nil,         -- current layer
+  rrobin = nil,         -- number of round robin layers for each note
+  rrobini = nil,        -- current round robin layer
+  total = nil,          -- total amount of notes that will be sampled
+  inst = nil,           -- instrument to which samples will be saved
+  inst_index = nil      -- instrument index
 }
 
 -- reset state to be ready to record
