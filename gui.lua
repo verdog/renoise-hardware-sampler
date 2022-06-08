@@ -338,7 +338,7 @@ function show_menu()
       },
 
       vb:text {
-        text = "Show Save Instrument diaglog"
+        text = "Show Save Instrument dialog"
       },
       
       vb:horizontal_aligner {
