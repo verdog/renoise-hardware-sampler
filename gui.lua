@@ -97,7 +97,9 @@ function midi_list()
       width = "50%",
       items = renoise.Midi.available_output_devices(),
       value = STATE.midi_device_index,
-      notifier = select_midi_device(STATE.midi_device_index),
+      notifier = function(x)
+        select_midi_device(x)
+      end,
       tooltip = "MIDI device to send MIDI signals to."
     },
     vb:text {
