@@ -18,7 +18,8 @@ OPTIONS = {
   mapping = 2,
   layers = 1,
   rrobin = 1,
-  between_time = 100
+  between_time = 100,
+  show_save_dialog = true,
 }
 
 
@@ -308,6 +309,19 @@ function finish()
   -- normalize samples if enabled
   if OPTIONS.post_record_normalize_and_trim then
     normalize_and_trim()
+  end
+  
+  if OPTIONS.show_save_dialog then
+    save_instrument()
+  end
+end
+
+
+function save_instrument()
+  local filename = renoise.app():prompt_for_filename_to_write("xrni", "Save instrument as...")
+    
+  if filename ~= "" then
+    renoise.app():save_instrument(filename)
   end
 end
 
