@@ -82,6 +82,9 @@ end
 
 function midi_list()
   print("midi_device_index: ", STATE.midi_device_index)
+  if STATE.midi_device_index > #renoise.Midi.available_output_devices() then
+    reset_midi_device_state()
+  end
   return vb:horizontal_aligner {
     margin = DEFAULT_MARGIN,
     spacing = 1,
@@ -94,7 +97,9 @@ function midi_list()
       width = "50%",
       items = renoise.Midi.available_output_devices(),
       value = STATE.midi_device_index,
-      notifier = select_midi_device,
+      notifier = function(x)
+        select_midi_device(x)
+      end,
       tooltip = "MIDI device to send MIDI signals to."
     },
     vb:text {

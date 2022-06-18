@@ -50,7 +50,6 @@ STATE = {
 function reset_state()
   STATE.notei = nil
   STATE.notes = nil
-  STATE.dev = nil
   STATE.recording = false
   STATE.layers = nil
   STATE.layeri = nil
@@ -59,6 +58,8 @@ function reset_state()
   STATE.total = nil
   STATE.inst = nil
   STATE.inst_index = nil
+  
+  reset_midi_device_state()
   
   TOCALL = nil -- from util.lua
   KILL = false -- from util.lua
@@ -72,6 +73,16 @@ function reset_state()
     renoise.tool():remove_timer(stop_note)
   end
 end
+
+function reset_midi_device_state()
+  local index = 1
+  local device_name = renoise.Midi.available_output_devices()[index]
+
+  STATE.dev = device_name
+  STATE.midi_device = nil
+  STATE.midi_device_index = index
+end
+renoise.Midi.devices_changed_observable(reset_midi_device_state())
 
 -- toggles the on/off state of a button
 function toggle_button(button, ttype)
