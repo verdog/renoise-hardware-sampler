@@ -51,7 +51,7 @@ function ProcessSlicer:__init(process_func, ...)
     "expected a function as first argument")
 
   self.__process_func = process_func
-  self.__process_func_args = arg
+  self.__process_func_args = {...}
   self.__process_thread = nil
 end
 
