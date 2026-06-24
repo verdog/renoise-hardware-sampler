@@ -336,6 +336,16 @@ function show_menu()
         }
       },
       
+      vb:checkbox{
+        value = OPTIONS.show_save_dialog,
+        notifier = function(x) OPTIONS.show_save_dialog = x end,
+        tooltip = "If checked the Save Insrument dialog window will be displayed after all jobs have completed."
+      },
+
+      vb:text {
+        text = "Show Save Instrument dialog"
+      },
+      
       vb:horizontal_aligner {
         spacing = UNIT,
         margin = DEFAULT_MARGIN,
